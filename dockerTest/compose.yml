@@ -1,0 +1,18 @@
+
+# Almost all of this is standard: If I have premade data, I can include that in the docker file
+services: 
+  mongo:
+    image: mongo:7
+    container_name: test-db
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    command: ["--bind_ip" , "0.0.0.0"]
+
+volumes:
+  mongo-data:
+    driver: local
+
+
+
