@@ -4,7 +4,7 @@ from pymongo import MongoClient
 # This code allows us to connect to the mongodb on docker, now lets try to upload this online instead of locally
 
 # Connect to the database
-client = MongoClient("mongodb://localhost:27017/")
+client = MongoClient("mongodb://172.20.10.2:27017/")
 db = client['store']
 customers = db['customers']
 instructors = db['items']
