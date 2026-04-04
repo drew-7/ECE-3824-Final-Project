@@ -40,3 +40,12 @@ Check a "Security Log" of the most recent 10 motion events.
 Basic Goal: Successful motion detection and data storage in the cloud with token protection.
 
 Stretch Goal: Implement "Human Detection" (distinguishing between a person and a shifting shadow) or real-time desktop notifications.
+
+# Weekly Updates (Implement properly later in readme file)
+
+## Week 11 Update: Data Pipeline Functional
+* **API:** FastAPI backend implemented with Bearer Token security.
+* **Database:** Integrated MongoDB for time-series event logging.
+* **Logic:** Implemented a temporal threshold (3-second sustained motion) to differentiate between human occupants and environmental "noise" (pets/shadows).
+* **Status:** Sensor successfully POSTs validated JSON data to the cloud database.
+* 
