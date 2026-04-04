@@ -48,4 +48,7 @@ Stretch Goal: Implement "Human Detection" (distinguishing between a person and a
 * **Database:** Integrated MongoDB for time-series event logging.
 * **Logic:** Implemented a temporal threshold (3-second sustained motion) to differentiate between human occupants and environmental "noise" (pets/shadows).
 * **Status:** Sensor successfully POSTs validated JSON data to the cloud database.
-* 
+* **Hardware Integration:** Successfully interfaced the USB Webcam with the Raspberry Pi for real-time monitoring.
+* **Data Pipeline:** Developed a Python service to capture motion events and transmit them via **FastAPI** to our backend.
+* **Database Deployment:** Integrated **MongoDB** using **Docker** for reliable, containerized data persistence.
+* **End-to-End Validation:** Verified that motion triggers on the Raspberry Pi correctly generate time-stamped JSON documents in the cloud database.
