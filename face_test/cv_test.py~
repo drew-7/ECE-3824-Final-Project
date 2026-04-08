@@ -1,0 +1,107 @@
+from flask import Flask, Response
+from picamera2 import Picamera2
+import cv2
+
+app = Flask(__name__)
+
+# Initialize camera
+picam2 = Picamera2()
+picam2.configure(picam2.create_video_configuration(main={"size": (640, 480)}))
+picam2.start()
+
+# Load cascades
+face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+eye_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_eye.xml')
+smile_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_smile.xml')
+
+# Frame skipping
+FRAME_SKIP = 2
+frame_counter = 0
+last_faces = []
+
+def generate_frames():
+    global frame_counter, last_faces
+
+    while True:
+        frame = picam2.capture_array()
+        frame_counter += 1
+
+        if frame_counter % FRAME_SKIP == 0:
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            last_faces = face_cascade.detectMultiScale(gray, 1.1, 5)
+
+        for (x, y, w, h) in last_faces:
+            # Draw face box
+            cv2.rectangle(frame, (x, y), (x+w, y+h), (255, 0, 0), 2)
+
+            roi_gray = gray[y:y+h, x:x+w]
+            roi_color = frame[y:y+h, x:x+w]
+
+            # --- EYES ---
+            eyes = eye_cascade.detectMultiScale(roi_gray, 1.1, 10)
+            for (ex, ey, ew, eh) in eyes:
+                cv2.rectangle(roi_color, (ex, ey), (ex+ew, ey+eh), (0, 255, 0), 2)
+
+                # --- EYEBROW APPROXIMATION ---
+                eyebrow_y = int(ey - eh * 0.6)
+                if eyebrow_y > 0:
+                    cv2.rectangle(
+                        roi_color,
+                        (ex, eyebrow_y),
+                        (ex+ew, ey),
+                        (0, 255, 255),
+                        1
+                    )
+
+            # --- SMILE / MOUTH ---
+            smiles = smile_cascade.detectMultiScale(
+                roi_gray,
+                scaleFactor=1.7,
+                minNeighbors=20,
+                minSize=(25, 25)
+            )
+
+            for (sx, sy, sw, sh) in smiles:
+                # Only consider lower half of face (reduces false positives)
+                if sy > h // 2:
+                    cv2.rectangle(roi_color, (sx, sy), (sx+sw, sy+sh), (0, 0, 255), 2)
+
+                    # --- LIPS APPROXIMATION ---
+                    lip_y1 = sy + int(sh * 0.5)
+                    lip_y2 = sy + sh
+                    cv2.rectangle(
+                        roi_color,
+                        (sx, lip_y1),
+                        (sx+sw, lip_y2),
+                        (255, 0, 255),
+                        1
+                    )
+
+        # Encode frame
+        ret, buffer = cv2.imencode('.jpg', frame)
+        frame_bytes = buffer.tobytes()
+
+        yield (b'--frame\r\n'
+               b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+
+
+@app.route('/')
+def index():
+    return '''
+    <html>
+        <head><title>Facial Feature Detection</title></head>
+        <body>
+            <h1>Face, Eyes, Eyebrows, Lips (Approx)</h1>
+            <img src="/video">
+        </body>
+    </html>
+    '''
+
+@app.route('/video')
+def video():
+    return Response(generate_frames(),
+                    mimetype='multipart/x-mixed-replace; boundary=frame')
+
+
+if __name__ == "__main__":
+    app.run(host='0.0.0.0', port=5000)
