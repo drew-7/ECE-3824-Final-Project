@@ -7,7 +7,7 @@ import os
 MODEL_PATH = 'detector.tflite'
 ALERT_THRESHOLD = 5.0 
 
-# ── Setup MediaPipe Face Landmarker (The correct modern API) ───────────────
+# ── Setup MediaPipe ─────────────────────────────────────────────────────────
 BaseOptions = mp.tasks.BaseOptions
 FaceLandmarker = mp.tasks.vision.FaceLandmarker
 FaceLandmarkerOptions = mp.tasks.vision.FaceLandmarkerOptions
@@ -17,11 +17,10 @@ if not os.path.exists(MODEL_PATH):
     print(f"CRITICAL ERROR: {MODEL_PATH} not found.")
     exit()
 
-# Configure the detector
+# This is the exact constructor signature for the current MediaPipe version
 options = FaceLandmarkerOptions(
     base_options=BaseOptions(model_asset_path=MODEL_PATH),
-    running_mode=VisionRunningMode.VIDEO,
-    output_face_landmarks=True)
+    running_mode=VisionRunningMode.VIDEO)
 
 # ── Main Loop ───────────────────────────────────────────────────────────────
 cap = cv2.VideoCapture(0)
@@ -44,13 +43,12 @@ with FaceLandmarker.create_from_options(options) as detector:
         is_focused = False
         if results.face_landmarks:
             for landmarks in results.face_landmarks:
-                # Nose tip is index 1
+                # Nose tip landmark index is 1
                 nose_tip = landmarks[1]
-                # Logic: If nose is centered (0.4 to 0.6)
                 if 0.4 < nose_tip.x < 0.6:
                     is_focused = True
                 
-                # Draw Box
+                # Draw visual feedback
                 h, w, _ = frame.shape
                 x_coords = [lm.x for lm in landmarks]
                 y_coords = [lm.y for lm in landmarks]
