@@ -7,7 +7,7 @@ import os
 MODEL_PATH = os.path.abspath('face_landmarker.task')
 ALERT_THRESHOLD = 5.0 
 
-# ── Setup ───────────────────────────────────────────────────────────────────
+# ── Setup ──────────────────────────────────────────────────────────────────
 BaseOptions = mp.tasks.BaseOptions
 FaceLandmarker = mp.tasks.vision.FaceLandmarker
 FaceLandmarkerOptions = mp.tasks.vision.FaceLandmarkerOptions
@@ -29,26 +29,34 @@ with FaceLandmarker.create_from_options(options) as detector:
         if not success: continue
         
         frame = cv2.flip(frame, 1)
-        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_frame)
         results = detector.detect_for_video(mp_image, int(time.time() * 1000))
         
-        is_focused = True # Assume focused until proven otherwise
+        is_focused = True
         
         if results.face_landmarks:
             for landmarks in results.face_landmarks:
-                # Landmark indices for Iris (approximate center)
-                left_eye_iris = landmarks[468] 
-                right_eye_iris = landmarks[473]
+                h, w, _ = frame.shape
                 
-                # Logic: If iris is too far left or right, you are not looking at the screen
-                # Center is usually around 0.5. Let's use a 0.15 tolerance.
-                if not (0.35 < left_eye_iris.x < 0.65):
-                    is_focused = False
+                # 1. Draw Face Square
+                x_min = int(min([lm.x for lm in landmarks]) * w) - 20
+                y_min = int(min([lm.y for lm in landmarks]) * h) - 20
+                x_max = int(max([lm.x for lm in landmarks]) * w) + 20
+                y_max = int(max([lm.y for lm in landmarks]) * h) + 20
                 
-                # Draw visual feedback on the frame
-                cv2.putText(frame, "STATUS: FOCUSING" if is_focused else "STATUS: DISTRACTED", 
-                            (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, 
-                            (0, 255, 0) if is_focused else (0, 0, 255), 2)
+                # 2. Track Iris Points (468 for left, 473 for right)
+                left_iris = landmarks[468]
+                right_iris = landmarks[473]
+                
+                # Logic: Check if irises are centered
+                if not (0.35 < left_iris.x < 0.65): is_focused = False
+                
+                # Draw Visuals
+                color = (0, 255, 0) if is_focused else (0, 0, 255)
+                cv2.rectangle(frame, (x_min, y_min), (x_max, y_max), color, 2)
+                cv2.circle(frame, (int(left_iris.x * w), int(left_iris.y * h)), 5, color, -1)
+                cv2.circle(frame, (int(right_iris.x * w), int(right_iris.y * h)), 5, color, -1)
 
         # ── Alert Logic ──────────────────────────────────────────────────────
         if is_focused:
@@ -56,13 +64,12 @@ with FaceLandmarker.create_from_options(options) as detector:
             alert_triggered = False
         else:
             if (time.time() - last_focus_time) > ALERT_THRESHOLD and not alert_triggered:
-                print("ALERT: YOU ARE LOSING FOCUS!")
+                print("ALERT: FOCUS LOST!")
                 os.system('afplay /System/Library/Sounds/Glass.aiff')
                 alert_triggered = True
 
-        cv2.imshow('Gaze Tracker', frame)
-        if cv2.waitKey(25) & 0xFF == ord('q'):
-            break
+        cv2.imshow('Precision Gaze Tracker', frame)
+        if cv2.waitKey(25) & 0xFF == ord('q'): break
 
 cap.release()
 cv2.destroyAllWindows()
