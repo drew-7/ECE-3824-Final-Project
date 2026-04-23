@@ -4,7 +4,8 @@ import time
 import os
 
 # ── Configuration ────────────────────────────────────────────────────────────
-MODEL_PATH = 'detector.tflite'
+# Get the absolute path to ensure MediaPipe finds the file regardless of cwd
+MODEL_PATH = os.path.abspath('detector.tflite') 
 ALERT_THRESHOLD = 5.0 
 
 # ── Setup MediaPipe ─────────────────────────────────────────────────────────
@@ -14,10 +15,10 @@ FaceLandmarkerOptions = mp.tasks.vision.FaceLandmarkerOptions
 VisionRunningMode = mp.tasks.vision.RunningMode
 
 if not os.path.exists(MODEL_PATH):
-    print(f"CRITICAL ERROR: {MODEL_PATH} not found.")
+    print(f"CRITICAL ERROR: File not found at {MODEL_PATH}")
     exit()
 
-# This is the exact constructor signature for the current MediaPipe version
+# Configure using absolute path
 options = FaceLandmarkerOptions(
     base_options=BaseOptions(model_asset_path=MODEL_PATH),
     running_mode=VisionRunningMode.VIDEO)
