@@ -1,17 +1,15 @@
-from pymongo import MongoClient
 
-client = MongoClient("mongodb+srv://smlgeorgi:Michael12!@eyetrackingdata.owsc6t5.mongodb.net/")
+from pymongo.mongo_client import MongoClient
+from pymongo.server_api import ServerApi
 
-db = client["activity_feed_db"]
-collection = db["sample_events"]
+uri = "mongodb+srv://smlgeorgi:1234@testcluster.ynrcxns.mongodb.net/?appName=TestCluster"
 
-collection.insert_one({"event": "eye_tracking_data", "data": {"left_eye": {"x": 0.5, "y": 0.5}, "right_eye": {"x": 0.6, "y": 0.5}}})
+# Create a new client and connect to the server
+client = MongoClient(uri, server_api=ServerApi('1'))
 
-
-
-
-
-
-
-
-
+# Send a ping to confirm a successful connection
+try:
+    client.admin.command('ping')
+    print("Pinged your deployment. You successfully connected to MongoDB!")
+except Exception as e:
+    print(e)
