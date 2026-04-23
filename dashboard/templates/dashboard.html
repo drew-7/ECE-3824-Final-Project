@@ -199,79 +199,35 @@
 <div class="refresh-bar"><div class="refresh-progress" id="refreshBar"></div></div>
 
 <script>
-function updateClock() {
-  const now = new Date();
-  document.getElementById('clock').textContent =
-    now.toLocaleTimeString('en-US', {hour12:false}) + ' UTC' +
-    (now.getTimezoneOffset() > 0 ? '-' : '+') +
-    String(Math.abs(now.getTimezoneOffset()/60)).padStart(2,'0');
-}
-setInterval(updateClock, 1000);
-updateClock();
-
 const ctx = document.getElementById('activityChart').getContext('2d');
 const activityChart = new Chart(ctx, {
-  type: 'bar',
-  data: {
-    labels: Array(24).fill(''),
-    datasets: [{
-      label: 'Events',
-      data: Array(24).fill(0),
-      backgroundColor: 'rgba(0,229,160,0.18)',
-      borderColor: '#00e5a0',
-      borderWidth: 2,
-      borderRadius: 5,
-    }]
-  },
-  options: { responsive: true, plugins: { legend: { display: false } }, scales: { x: { grid: { color: 'rgba(255,255,255,.04)' } }, y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,.06)' } } } }
+  type: 'line',
+  data: { labels: [], datasets: [{ 
+    label: 'Focus (1=Human, 0=Distracted)', 
+    data: [], 
+    borderColor: '#00e5a0', 
+    tension: 0.4,
+    fill: true,
+    backgroundColor: 'rgba(0,229,160,0.1)'
+  }] },
+  options: { 
+    responsive: true,
+    scales: { y: { min: -0.5, max: 1.5, ticks: { stepSize: 1 } } } 
+  }
 });
 
-async function fetchJSON(url) { try { const r = await fetch(url); return await r.json(); } catch(e) { return null; } }
-
-async function updateStatus() {
-  const data = await fetchJSON('/api/status');
-  if (!data) return;
-  const dot  = document.getElementById('statusDot');
-  const text = document.getElementById('statusText');
-  const last = document.getElementById('statusLast');
-  const lbl  = document.getElementById('lastLabel');
-  dot.className  = 'status-dot ' + (data.occupied ? 'occupied' : 'vacant');
-  text.textContent = data.occupied ? 'OCCUPIED' : 'VACANT';
-  text.style.color = data.occupied ? 'var(--green)' : 'var(--muted)';
-  last.textContent = data.occupied ? `Last event @ ${data.last_event}` : `Last seen @ ${data.last_event}`;
-  lbl.textContent  = data.label || '—';
-}
-
-async function updateTotal() {
-  const data = await fetchJSON('/api/total');
-  if (data) document.getElementById('total24h').textContent = data.total_24h;
-}
-
-async function updateChart() {
-  const data = await fetchJSON('/api/hourly');
-  if (!data) return;
+async function refresh() {
+  // Update Chart
+  const res = await fetch('/api/hourly');
+  const data = await res.json();
   activityChart.data.labels = data.labels;
   activityChart.data.datasets[0].data = data.counts;
   activityChart.update();
+  
+  // Update Status
+  const status = await fetch('/api/status').then(r => r.json());
+  document.getElementById('statusText').textContent = status.label.toUpperCase();
 }
-
-function tagClass(label) {
-  if (label === 'human')  return 'tag tag-human';
-  if (label === 'noise')  return 'tag tag-noise';
-  return 'tag tag-motion';
-}
-
-async function updateLog() {
-  const rows = await fetchJSON('/api/log');
-  const body = document.getElementById('logBody');
-  if (!rows || rows.length === 0) return;
-  body.innerHTML = rows.map((r, i) => `
-    <tr><td style="color:var(--muted)">${i+1}</td><td>${r.time}</td><td>${r.duration}s</td><td><span class="${tagClass(r.label)}">${r.label}</span></td></tr>
-  `).join('');
-}
-
-async function refresh() { await Promise.all([updateStatus(), updateTotal(), updateChart(), updateLog()]); }
-refresh();
 setInterval(refresh, 5000);
 </script>
 </body>
