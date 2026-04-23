@@ -4,9 +4,15 @@ import time
 import os
 
 # ── Configuration ────────────────────────────────────────────────────────────
-# Get the absolute path to ensure MediaPipe finds the file regardless of cwd
-MODEL_PATH = os.path.abspath('face_landmarker.task')
-ALERT_THRESHOLD = 5.0 
+# Explicitly setting the filename to match your file
+MODEL_FILENAME = 'face_landmarker.task'
+MODEL_PATH = os.path.join(os.getcwd(), MODEL_FILENAME)
+
+# Diagnostic check
+if not os.path.exists(MODEL_PATH):
+    print(f"CRITICAL ERROR: Could not find {MODEL_FILENAME} at {MODEL_PATH}")
+    print("Files currently in this folder:", os.listdir('.'))
+    exit()
 
 # ── Setup MediaPipe ─────────────────────────────────────────────────────────
 BaseOptions = mp.tasks.BaseOptions
@@ -14,11 +20,6 @@ FaceLandmarker = mp.tasks.vision.FaceLandmarker
 FaceLandmarkerOptions = mp.tasks.vision.FaceLandmarkerOptions
 VisionRunningMode = mp.tasks.vision.RunningMode
 
-if not os.path.exists(MODEL_PATH):
-    print(f"CRITICAL ERROR: File not found at {MODEL_PATH}")
-    exit()
-
-# Configure using absolute path
 options = FaceLandmarkerOptions(
     base_options=BaseOptions(model_asset_path=MODEL_PATH),
     running_mode=VisionRunningMode.VIDEO)
@@ -36,6 +37,7 @@ with FaceLandmarker.create_from_options(options) as detector:
         if not success: continue
         
         frame = cv2.flip(frame, 1)
+        # Convert frame to MediaPipe Image
         mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
         
         timestamp_ms = int(time.time() * 1000)
@@ -44,12 +46,13 @@ with FaceLandmarker.create_from_options(options) as detector:
         is_focused = False
         if results.face_landmarks:
             for landmarks in results.face_landmarks:
-                # Nose tip landmark index is 1
+                # Landmark 1 is the nose tip
                 nose_tip = landmarks[1]
+                # Logic: If nose is centered (0.4 to 0.6), user is focused
                 if 0.4 < nose_tip.x < 0.6:
                     is_focused = True
                 
-                # Draw visual feedback
+                # Draw Box
                 h, w, _ = frame.shape
                 x_coords = [lm.x for lm in landmarks]
                 y_coords = [lm.y for lm in landmarks]
@@ -64,7 +67,7 @@ with FaceLandmarker.create_from_options(options) as detector:
             last_focus_time = time.time()
             alert_triggered = False
         else:
-            if (time.time() - last_focus_time) > ALERT_THRESHOLD and not alert_triggered:
+            if (time.time() - last_focus_time) > 5.0 and not alert_triggered:
                 print("ALERT: FOCUS LOST!")
                 os.system('afplay /System/Library/Sounds/Glass.aiff')
                 alert_triggered = True
