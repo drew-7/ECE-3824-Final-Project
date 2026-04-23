@@ -2,6 +2,7 @@ from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
 from dotenv import load_dotenv
 from datetime import datetime,timezone
+import requests
 import os
 import cv2
 import json
@@ -41,6 +42,7 @@ eye_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_eye.xml
 # Settings
 FRAME_SKIP = 3
 PRINT_EVERY = 1
+BACKEND_URL = "http://localhost:5000/frame"
 
 frame_counter = 0
 last_faces = []
@@ -54,9 +56,27 @@ while True:
 
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
+    _, buffer = cv2.imencode(".jpg", frame)
+
+    requests.post(
+    "http://10.109.105.43:5000/frame",
+    files={"frame": buffer.tobytes()}
+    )
     # Face detection
     if frame_counter % FRAME_SKIP == 0:
         last_faces = face_cascade.detectMultiScale(gray, 1.1, 5)
+
+        try:
+            _, buffer = cv2.imencode(".jpg", frame)
+
+            requests.post(
+                BACKEND_URL,
+                files={"frame": buffer.tobytes()},
+                timeout=0.2
+                        )
+        except Exception as e:
+            print("Frame send failed:", e)
+
 
     normalized_eyes = []
 
@@ -125,8 +145,6 @@ while True:
     # Exit on 'q'
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
-
-     
 
 # Cleanup
 cap.release()
