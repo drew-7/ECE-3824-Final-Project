@@ -52,25 +52,46 @@ def generate_frames():
                 })
                 last_db_update = time.time()
             
+            # Draw overlay for the live feed stream
+            status_text = "HUMAN" if is_focused else "DISTRACTED"
+            color = (0, 255, 0) if is_focused else (0, 0, 255)
+            cv2.putText(frame, status_text, (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, color, 2)
+            
             _, buffer = cv2.imencode('.jpg', frame)
             yield (b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
 
 @app.route('/video_feed')
 def video_feed(): return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
+# ── API Routes ───────────────────────────────────────────────────────────────
 @app.route("/api/status")
 def status():
     last = events_col.find_one(sort=[("timestamp", -1)])
-    return jsonify({"occupied": True, "label": last.get("label", "none") if last else "none", "last_event": last["timestamp"].strftime("%H:%M:%S") if last else "—"})
+    return jsonify({
+        "occupied": True, 
+        "label": last.get("label", "none") if last else "none", 
+        "last_event": last["timestamp"].strftime("%H:%M:%S") if last else "—"
+    })
+
+@app.route("/api/log")
+def log():
+    docs = list(events_col.find(sort=[("timestamp", -1)], limit=10))
+    return jsonify([{"time": d["timestamp"].strftime("%H:%M:%S"), "duration": 5, "label": d.get("label")} for d in docs])
 
 @app.route("/api/hourly")
 def hourly():
+    # Fetch last 12 entries (60 seconds)
     since = datetime.utcnow() - timedelta(seconds=60)
     docs = list(events_col.find({"timestamp": {"$gte": since}}).sort("timestamp", 1))
     return jsonify({
         "labels": [d["timestamp"].strftime("%H:%M:%S") for d in docs],
         "counts": [1 if d["label"] == "human" else 0 for d in docs]
     })
+
+@app.route("/api/total")
+def total():
+    count = events_col.count_documents({})
+    return jsonify({"total_24h": count})
 
 @app.route("/")
 def index(): return render_template("dashboard.html")
