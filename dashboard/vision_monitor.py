@@ -5,7 +5,7 @@ import os
 
 # ── Configuration ────────────────────────────────────────────────────────────
 # Get the absolute path to ensure MediaPipe finds the file regardless of cwd
-MODEL_PATH = os.path.abspath('face_landmarker.tflite')
+MODEL_PATH = os.path.abspath('face_landmarker.task')
 ALERT_THRESHOLD = 5.0 
 
 # ── Setup MediaPipe ─────────────────────────────────────────────────────────
