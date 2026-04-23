@@ -1,10 +1,32 @@
+from pymongo.mongo_client import MongoClient
+from pymongo.server_api import ServerApi
+from dotenv import load_dotenv
+from datetime import datetime,timezone
+import os
 import cv2
-import time
 import json
+
+### Load Mongo Data Base
+load_dotenv("../../.env/.env")
+uri = os.getenv("MONGO_URI")
+# Create a new client and connect to the server
+client = MongoClient(uri, server_api=ServerApi('1'))
+
+# Send a ping to confirm a successful connection
+try:
+    client.admin.command('ping')
+    print("Pinged your deployment. You successfully connected to MongoDB!")
+except Exception as e:
+    print(e)
+
+db = client["EyeDataPoints"]
+database = db["LiveData"]
+
+
 
 # Initialize webcam
 cap = cv2.VideoCapture(0)
-
+print("Camera is up and running...")
 # Set resolution
 FRAME_WIDTH = 320
 FRAME_HEIGHT = 240
@@ -12,11 +34,12 @@ cap.set(cv2.CAP_PROP_FRAME_WIDTH, FRAME_WIDTH)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, FRAME_HEIGHT)
 
 # Load cascades
-face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+#face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_alt.xml')
 eye_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_eye.xml')
 
 # Settings
-FRAME_SKIP = 1
+FRAME_SKIP = 3
 PRINT_EVERY = 1
 
 frame_counter = 0
@@ -43,7 +66,7 @@ while True:
         roi_gray = gray[y:y+h, x:x+w]
         roi_color = frame[y:y+h, x:x+w]
 
-        eyes = eye_cascade.detectMultiScale(roi_gray, 1.1, 7)
+        eyes = eye_cascade.detectMultiScale(roi_gray, 1.1, 3)
 
         for (ex, ey, ew, eh) in eyes:
             # Draw filled eye box
@@ -75,7 +98,9 @@ while True:
         right_eye = normalized_eyes[1]
 
         data = {
-            "timestamp": time.time(),
+            #"timestamp": datetime.now().isoformat(),
+            "_id" : database.count_documents({}) + 1,
+            "timestamp" : datetime.now(timezone.utc).isoformat(),
             "left_eye": {
                 "x": left_eye[0],
                 "y": left_eye[1]
@@ -91,12 +116,17 @@ while True:
 
         print(data["left_eye"]["x"])
 
+        ## upload data to MongoDB
+        database.insert_one(json.loads(json_data))
+
     # Show frame
     cv2.imshow("Eye Tracking (Normalized 0–1)", frame)
 
     # Exit on 'q'
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
+
+     
 
 # Cleanup
 cap.release()
