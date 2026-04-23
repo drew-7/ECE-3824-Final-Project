@@ -36,6 +36,7 @@
     background-size: 40px 40px;
   }
 
+  /* ── Header ─────────────────────────────────────── */
   header {
     display: flex;
     align-items: center;
@@ -49,23 +50,25 @@
     width: 40px; height: 40px;
     border: 2px solid var(--green);
     border-radius: 8px;
-    display: grid;
-    place-items: center;
+    display: grid; place-items: center;
     font-size: 1.2rem;
   }
-  h1 { font-family: var(--font-ui); font-weight: 800; font-size: 1.3rem; letter-spacing: -0.02em; color: #fff; }
+  h1 { font-weight: 800; font-size: 1.3rem; letter-spacing: -0.02em; color: #fff; }
   h1 span { color: var(--green); }
   .clock {
     font-family: var(--font-mono);
-    font-size: 0.8rem;
-    color: var(--muted);
+    font-size: 0.8rem; color: var(--muted);
     background: var(--surface);
     border: 1px solid var(--border);
-    padding: 0.4rem 0.8rem;
-    border-radius: 6px;
+    padding: 0.4rem 0.8rem; border-radius: 6px;
   }
 
-  .grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1.25rem; }
+  /* ── Grid ────────────────────────────────────────── */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 1.25rem;
+  }
 
   .card {
     background: var(--surface);
@@ -77,56 +80,190 @@
   }
   .card::before {
     content: '';
-    position: absolute;
-    inset: 0;
+    position: absolute; inset: 0;
     background: linear-gradient(135deg, rgba(255,255,255,.02) 0%, transparent 60%);
     pointer-events: none;
   }
   .card-label {
-    font-size: 0.65rem;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-bottom: 0.75rem;
+    font-size: 0.65rem; font-weight: 700;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 0.75rem;
   }
 
-  .card-status { grid-column: span 4; display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between; min-height: 180px; }
+  /* ── Status card ────────────────────────────────── */
+  .card-status {
+    grid-column: span 3;
+    display: flex; flex-direction: column;
+    align-items: flex-start; justify-content: space-between;
+    min-height: 200px;
+  }
   .status-badge { display: flex; align-items: center; gap: 0.75rem; margin-top: auto; }
-  .status-dot { width: 14px; height: 14px; border-radius: 50%; background: var(--muted); box-shadow: 0 0 0 4px rgba(255,255,255,.06); transition: background .4s, box-shadow .4s; flex-shrink: 0; }
-  .status-dot.occupied { background: var(--green); box-shadow: 0 0 0 6px rgba(0,229,160,.15), 0 0 20px rgba(0,229,160,.35); animation: pulse 2s ease-in-out infinite; }
-  @keyframes pulse {
+  .status-dot {
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--muted);
+    box-shadow: 0 0 0 4px rgba(255,255,255,.06);
+    transition: background .4s, box-shadow .4s;
+    flex-shrink: 0;
+  }
+  .status-dot.focused {
+    background: var(--green);
+    box-shadow: 0 0 0 6px rgba(0,229,160,.15), 0 0 20px rgba(0,229,160,.35);
+    animation: pulse-green 2s ease-in-out infinite;
+  }
+  .status-dot.distracted {
+    background: var(--red);
+    box-shadow: 0 0 0 6px rgba(255,77,109,.15), 0 0 20px rgba(255,77,109,.35);
+    animation: pulse-red 2s ease-in-out infinite;
+  }
+  .status-dot.vacant { background: var(--muted); }
+
+  @keyframes pulse-green {
     0%,100% { box-shadow: 0 0 0 6px rgba(0,229,160,.15), 0 0 20px rgba(0,229,160,.35); }
     50%      { box-shadow: 0 0 0 10px rgba(0,229,160,.08), 0 0 30px rgba(0,229,160,.5); }
   }
-  .status-text { font-size: 2rem; font-weight: 800; letter-spacing: -0.03em; color: #fff; line-height: 1; }
+  @keyframes pulse-red {
+    0%,100% { box-shadow: 0 0 0 6px rgba(255,77,109,.15), 0 0 20px rgba(255,77,109,.35); }
+    50%      { box-shadow: 0 0 0 10px rgba(255,77,109,.08), 0 0 30px rgba(255,77,109,.5); }
+  }
+
+  .status-text { font-size: 1.7rem; font-weight: 800; letter-spacing: -0.03em; color: #fff; line-height: 1; }
   .status-last { font-family: var(--font-mono); font-size: 0.72rem; color: var(--muted); margin-top: 0.5rem; }
 
-  .card-stat { grid-column: span 2; min-height: 120px; display: flex; flex-direction: column; justify-content: space-between; }
-  .stat-number { font-size: 2.4rem; font-weight: 800; color: #fff; letter-spacing: -0.04em; line-height: 1; }
+  /* ── Stat cards ─────────────────────────────────── */
+  .card-stat {
+    grid-column: span 2;
+    min-height: 120px;
+    display: flex; flex-direction: column; justify-content: space-between;
+  }
+  .stat-number { font-size: 2.2rem; font-weight: 800; color: #fff; letter-spacing: -0.04em; line-height: 1; }
   .stat-sub { font-family: var(--font-mono); font-size: 0.68rem; color: var(--muted); }
   .accent-green { color: var(--green); }
+  .accent-amber { color: var(--amber); }
   .accent-blue  { color: var(--blue);  }
+  .accent-red   { color: var(--red);   }
 
-  .card-chart { grid-column: span 8; }
-  .card-chart canvas { max-height: 240px; }
+  /* ── Camera card ─────────────────────────────────── */
+  .card-camera {
+    grid-column: span 4;
+    display: flex; flex-direction: column;
+    min-height: 200px;
+    padding: 0;
+    overflow: hidden;
+    border-radius: 14px;
+  }
+  .camera-header {
+    padding: 0.85rem 1.2rem 0.6rem;
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--surface);
+    flex-shrink: 0;
+  }
+  .camera-header .card-label { margin-bottom: 0; }
+  .live-badge {
+    display: flex; align-items: center; gap: 0.4rem;
+    font-family: var(--font-mono); font-size: 0.65rem;
+    color: var(--red); font-weight: 700;
+    letter-spacing: 0.08em;
+  }
+  .live-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--red);
+    animation: blink 1.2s ease-in-out infinite;
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
 
+  .camera-feed-wrapper {
+    flex: 1; position: relative;
+    background: #000;
+    min-height: 160px;
+  }
+  .camera-feed-wrapper img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  /* overlay label on top of camera */
+  .camera-overlay {
+    position: absolute;
+    top: 0.5rem; left: 0.5rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 5px;
+    font-family: var(--font-mono);
+    font-size: 0.7rem; font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    transition: background .4s, color .4s;
+    pointer-events: none;
+  }
+  .camera-overlay.focused    { background: rgba(0,229,160,.25); color: var(--green); border: 1px solid var(--green); }
+  .camera-overlay.distracted { background: rgba(255,77,109,.25); color: var(--red);   border: 1px solid var(--red);   }
+  .camera-overlay.vacant     { background: rgba(90,98,120,.25);  color: var(--muted); border: 1px solid var(--muted); }
+
+  /* ── Chart card ─────────────────────────────────── */
+  .card-chart { grid-column: span 7; }
+  .card-chart canvas { max-height: 220px; }
+
+  /* ── Log card ───────────────────────────────────── */
   .card-log { grid-column: span 12; }
   table { width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: 0.75rem; }
-  thead th { text-align: left; padding: 0.5rem 0.75rem; font-size: 0.6rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--border); }
-  tbody tr { border-bottom: 1px solid rgba(255,255,255,.04); }
+  thead th {
+    text-align: left; padding: 0.5rem 0.75rem;
+    font-size: 0.6rem; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--muted); border-bottom: 1px solid var(--border);
+  }
+  tbody tr { border-bottom: 1px solid rgba(255,255,255,.04); transition: background .15s; }
+  tbody tr:hover { background: rgba(255,255,255,.03); }
   tbody td { padding: 0.6rem 0.75rem; color: var(--text); }
-  .tag { display: inline-block; padding: 0.15rem 0.55rem; border-radius: 4px; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
-  .tag-human  { background: rgba(0,229,160,.12); color: var(--green); }
-  .tag-motion { background: rgba(77,184,255,.12); color: var(--blue); }
-  .tag-noise  { background: rgba(90,98,120,.15);  color: var(--muted); }
 
+  .tag {
+    display: inline-block; padding: 0.15rem 0.55rem;
+    border-radius: 4px; font-size: 0.65rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .tag-human     { background: rgba(0,229,160,.12);   color: var(--green); }
+  .tag-focused   { background: rgba(0,229,160,.12);   color: var(--green); }
+  .tag-distracted{ background: rgba(255,77,109,.12);  color: var(--red);   }
+  .tag-motion    { background: rgba(77,184,255,.12);  color: var(--blue);  }
+  .tag-noise     { background: rgba(90,98,120,.15);   color: var(--muted); }
+
+  /* ── Focus score bar ─────────────────────────────── */
+  .focus-bar-wrap {
+    margin-top: 1rem;
+    background: var(--border);
+    border-radius: 99px;
+    height: 6px;
+    overflow: hidden;
+  }
+  .focus-bar-fill {
+    height: 100%;
+    border-radius: 99px;
+    background: var(--green);
+    transition: width .6s ease, background .4s;
+    width: 0%;
+  }
+  .focus-score-label {
+    font-family: var(--font-mono); font-size: 0.65rem;
+    color: var(--muted); margin-top: 0.35rem;
+  }
+
+  /* ── Refresh indicator ──────────────────────────── */
   .refresh-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 3px; background: var(--border); }
-  .refresh-progress { height: 100%; background: var(--green); width: 100%; transform-origin: left; animation: shrink 5s linear infinite; }
-  @keyframes shrink { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+  .refresh-progress {
+    height: 100%; background: var(--green); width: 100%;
+    transform-origin: left;
+    animation: shrink 5s linear infinite;
+  }
+  @keyframes shrink { from{transform:scaleX(1)} to{transform:scaleX(0)} }
 
-  @media (max-width: 900px) { .card-status { grid-column: span 6; } .card-stat { grid-column: span 3; } .card-chart { grid-column: span 12; } }
-  @media (max-width: 600px) { body { padding: 1rem; } .card-status, .card-stat, .card-chart { grid-column: span 12; } }
+  /* ── Responsive ─────────────────────────────────── */
+  @media (max-width: 1000px) {
+    .card-status, .card-camera { grid-column: span 6; }
+    .card-stat   { grid-column: span 3; }
+    .card-chart  { grid-column: span 12; }
+  }
+  @media (max-width: 600px) {
+    body { padding: 1rem; }
+    .card-status,.card-stat,.card-camera,.card-chart { grid-column: span 12; }
+  }
 </style>
 </head>
 <body>
@@ -141,93 +278,270 @@
 
 <div class="grid">
 
+  <!-- ── Occupancy Status ── -->
   <div class="card card-status">
-    <div class="card-label">Occupancy Status</div>
+    <div class="card-label">Focus Status</div>
     <div class="status-badge">
-      <div class="status-dot" id="statusDot"></div>
+      <div class="status-dot vacant" id="statusDot"></div>
       <div>
         <div class="status-text" id="statusText">—</div>
         <div class="status-last" id="statusLast">Fetching…</div>
       </div>
     </div>
-  </div>
-
-  <div class="card card-stat">
-    <div class="card-label">Events / 24h</div>
-    <div class="stat-number accent-green" id="total24h">—</div>
-    <div class="stat-sub">motion events</div>
-  </div>
-
-  <div class="card card-stat">
-    <div class="card-label">Last Detected</div>
-    <div class="stat-number accent-blue" id="lastLabel" style="font-size:1.5rem">—</div>
-    <div class="stat-sub">event type</div>
-  </div>
-
-  <div class="card card-stat">
-    <div class="card-label">Live Feed</div>
-    <div style="margin-top:.25rem;">
-      <img src="{{ url_for('video_feed') }}" width="100%" style="border-radius:6px; border:1px solid var(--border);">
+    <div class="focus-bar-wrap">
+      <div class="focus-bar-fill" id="focusBar"></div>
     </div>
-    <div class="stat-sub">Real-time AI monitor</div>
+    <div class="focus-score-label" id="focusScore">focus rate: —</div>
   </div>
 
+  <!-- ── Events 24h ── -->
   <div class="card card-stat">
-    <div class="card-label">System</div>
-    <div class="stat-number accent-green" style="font-size:1rem;margin-top:.25rem;">ONLINE</div>
-    <div class="stat-sub">backend status</div>
+    <div class="card-label">Total Events</div>
+    <div class="stat-number accent-green" id="total24h">—</div>
+    <div class="stat-sub">all time</div>
   </div>
 
+  <!-- ── Focused count ── -->
+  <div class="card card-stat">
+    <div class="card-label">Focused</div>
+    <div class="stat-number accent-green" id="focusedCount">—</div>
+    <div class="stat-sub">last 60s</div>
+  </div>
+
+  <!-- ── Distracted count ── -->
+  <div class="card card-stat">
+    <div class="card-label">Distracted</div>
+    <div class="stat-number accent-red" id="distractedCount">—</div>
+    <div class="stat-sub">last 60s</div>
+  </div>
+
+  <!-- ── Live Camera Feed ── -->
+  <div class="card card-camera">
+    <div class="camera-header">
+      <div class="card-label">Live Camera Feed</div>
+      <div class="live-badge"><div class="live-dot"></div>LIVE</div>
+    </div>
+    <div class="camera-feed-wrapper">
+      <img id="cameraFeed" src="/video_feed" alt="Camera Feed"
+           onerror="this.style.display='none'; document.getElementById('camOffline').style.display='flex';" />
+      <div id="camOffline" style="display:none; position:absolute; inset:0; align-items:center; justify-content:center; flex-direction:column; gap:0.5rem; background:#0b0e14;">
+        <span style="font-size:2rem;">📷</span>
+        <span style="font-family:var(--font-mono); font-size:0.75rem; color:var(--muted);">Camera offline</span>
+      </div>
+      <div class="camera-overlay vacant" id="cameraOverlay">—</div>
+    </div>
+  </div>
+
+  <!-- ── Activity Chart ── -->
   <div class="card card-chart">
-    <div class="card-label">Activity — Last 24 Hours</div>
+    <div class="card-label">Focus Timeline — Last 60 Seconds</div>
     <canvas id="activityChart"></canvas>
   </div>
 
+  <!-- ── Security Log ── -->
   <div class="card card-log">
-    <div class="card-label">Security Log — Last 10 Events</div>
+    <div class="card-label">Session Log — Last 10 Events</div>
     <table>
       <thead>
-        <tr><th>#</th><th>Timestamp (UTC)</th><th>Duration (s)</th><th>Label</th></tr>
+        <tr>
+          <th>#</th>
+          <th>Timestamp (UTC)</th>
+          <th>Duration (s)</th>
+          <th>Status</th>
+        </tr>
       </thead>
       <tbody id="logBody">
         <tr><td colspan="4" style="color:var(--muted);padding:1rem .75rem;">Loading…</td></tr>
       </tbody>
     </table>
   </div>
-</div>
+
+</div><!-- .grid -->
 
 <div class="refresh-bar"><div class="refresh-progress" id="refreshBar"></div></div>
 
 <script>
+// ── Clock ─────────────────────────────────────────────────────────────────────
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent =
+    now.toLocaleTimeString('en-US', {hour12: false}) +
+    ' UTC' + (now.getTimezoneOffset() > 0 ? '-' : '+') +
+    String(Math.abs(now.getTimezoneOffset() / 60)).padStart(2, '0');
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ── Chart Setup ───────────────────────────────────────────────────────────────
 const ctx = document.getElementById('activityChart').getContext('2d');
+
+// Two datasets: focused (green) and distracted (red)
 const activityChart = new Chart(ctx, {
-  type: 'line',
-  data: { labels: [], datasets: [{ 
-    label: 'Focus (1=Human, 0=Distracted)', 
-    data: [], 
-    borderColor: '#00e5a0', 
-    tension: 0.4,
-    fill: true,
-    backgroundColor: 'rgba(0,229,160,0.1)'
-  }] },
-  options: { 
+  type: 'bar',
+  data: {
+    labels: [],
+    datasets: [
+      {
+        label: 'Focused',
+        data: [],
+        backgroundColor: 'rgba(0,229,160,0.55)',
+        borderColor: '#00e5a0',
+        borderWidth: 1.5,
+        borderRadius: 4,
+        borderSkipped: false,
+      },
+      {
+        label: 'Distracted',
+        data: [],
+        backgroundColor: 'rgba(255,77,109,0.45)',
+        borderColor: '#ff4d6d',
+        borderWidth: 1.5,
+        borderRadius: 4,
+        borderSkipped: false,
+      }
+    ]
+  },
+  options: {
     responsive: true,
-    scales: { y: { min: -0.5, max: 1.5, ticks: { stepSize: 1 } } } 
+    animation: { duration: 400 },
+    plugins: {
+      legend: {
+        display: true,
+        labels: { color: '#5a6278', font: { family: 'Space Mono', size: 10 } }
+      }
+    },
+    scales: {
+      x: {
+        stacked: true,
+        ticks: { color: '#5a6278', font: { family: 'Space Mono', size: 9 }, maxRotation: 45, maxTicksLimit: 12 },
+        grid: { color: 'rgba(255,255,255,.04)' },
+      },
+      y: {
+        stacked: true,
+        ticks: { color: '#5a6278', font: { family: 'Space Mono', size: 10 }, stepSize: 1 },
+        grid: { color: 'rgba(255,255,255,.06)' },
+        beginAtZero: true,
+        max: 1,
+      }
+    }
   }
 });
 
-async function refresh() {
-  // Update Chart
-  const res = await fetch('/api/hourly');
-  const data = await res.json();
-  activityChart.data.labels = data.labels;
-  activityChart.data.datasets[0].data = data.counts;
-  activityChart.update();
-  
-  // Update Status
-  const status = await fetch('/api/status').then(r => r.json());
-  document.getElementById('statusText').textContent = status.label.toUpperCase();
+// ── Fetch Helper ──────────────────────────────────────────────────────────────
+async function fetchJSON(url) {
+  try {
+    const r = await fetch(url);
+    return await r.json();
+  } catch(e) { return null; }
 }
+
+// ── Status Card ───────────────────────────────────────────────────────────────
+async function updateStatus() {
+  const data = await fetchJSON('/api/status');
+  if (!data) return;
+
+  const dot     = document.getElementById('statusDot');
+  const text    = document.getElementById('statusText');
+  const last    = document.getElementById('statusLast');
+  const overlay = document.getElementById('cameraOverlay');
+
+  const label = data.label || 'vacant';
+
+  // dot classes: focused | distracted | vacant
+  dot.className = 'status-dot ' + label;
+  overlay.className = 'camera-overlay ' + label;
+  overlay.textContent = label.toUpperCase();
+
+  if (label === 'human' || label === 'focused') {
+    text.textContent = 'FOCUSED';
+    text.style.color = 'var(--green)';
+  } else if (label === 'distracted') {
+    text.textContent = 'DISTRACTED';
+    text.style.color = 'var(--red)';
+  } else {
+    text.textContent = 'VACANT';
+    text.style.color = 'var(--muted)';
+  }
+
+  last.textContent = `Last event @ ${data.last_event}`;
+}
+
+// ── Total Count ───────────────────────────────────────────────────────────────
+async function updateTotal() {
+  const data = await fetchJSON('/api/total');
+  if (data) document.getElementById('total24h').textContent = data.total_24h;
+}
+
+// ── Chart + Focus Counts ──────────────────────────────────────────────────────
+async function updateChart() {
+  const data = await fetchJSON('/api/hourly');
+  if (!data) return;
+
+  const labels  = data.labels;
+  const counts  = data.counts; // 1 = focused, 0 = distracted
+
+  // Build two parallel arrays
+  const focused    = counts.map(v => v === 1 ? 1 : 0);
+  const distracted = counts.map(v => v === 0 ? 1 : 0);
+
+  activityChart.data.labels = labels;
+  activityChart.data.datasets[0].data = focused;
+  activityChart.data.datasets[1].data = distracted;
+  activityChart.update();
+
+  // Update focused / distracted counters
+  const fCount = focused.reduce((a, b) => a + b, 0);
+  const dCount = distracted.reduce((a, b) => a + b, 0);
+  const total  = fCount + dCount;
+
+  document.getElementById('focusedCount').textContent    = fCount;
+  document.getElementById('distractedCount').textContent = dCount;
+
+  // Focus rate bar
+  const rate = total > 0 ? Math.round((fCount / total) * 100) : 0;
+  const bar  = document.getElementById('focusBar');
+  bar.style.width = rate + '%';
+  bar.style.background = rate > 60 ? 'var(--green)' : rate > 30 ? 'var(--amber)' : 'var(--red)';
+  document.getElementById('focusScore').textContent = `focus rate: ${rate}%`;
+}
+
+// ── Log Table ─────────────────────────────────────────────────────────────────
+function tagClass(label) {
+  if (label === 'human' || label === 'focused') return 'tag tag-focused';
+  if (label === 'distracted') return 'tag tag-distracted';
+  if (label === 'noise')      return 'tag tag-noise';
+  return 'tag tag-motion';
+}
+
+async function updateLog() {
+  const rows = await fetchJSON('/api/log');
+  const body = document.getElementById('logBody');
+  if (!rows || rows.length === 0) {
+    body.innerHTML = '<tr><td colspan="4" style="color:var(--muted);padding:1rem .75rem;">No events yet</td></tr>';
+    return;
+  }
+  body.innerHTML = rows.map((r, i) => `
+    <tr>
+      <td style="color:var(--muted)">${i + 1}</td>
+      <td>${r.time}</td>
+      <td>${r.duration}s</td>
+      <td><span class="${tagClass(r.label)}">${r.label}</span></td>
+    </tr>
+  `).join('');
+}
+
+// ── Refresh Loop (every 5 seconds) ────────────────────────────────────────────
+async function refresh() {
+  await Promise.all([updateStatus(), updateTotal(), updateChart(), updateLog()]);
+
+  // restart CSS progress bar
+  const bar = document.getElementById('refreshBar');
+  bar.style.animation = 'none';
+  bar.offsetHeight; // force reflow
+  bar.style.animation = '';
+}
+
+refresh();
 setInterval(refresh, 5000);
 </script>
 </body>
