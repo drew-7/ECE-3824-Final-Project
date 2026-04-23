@@ -216,32 +216,18 @@ const activityChart = new Chart(ctx, {
   }
 });
 
-// 1. Updated updateChart function with debugging
-async function updateChart() {
-  const data = await fetchJSON('/api/hourly');
-  if (!data) return;
-  console.log("New Chart Data:", data); // Now visible in F12 Console
+async function refresh() {
+  // Update Chart
+  const res = await fetch('/api/hourly');
+  const data = await res.json();
   activityChart.data.labels = data.labels;
   activityChart.data.datasets[0].data = data.counts;
   activityChart.update();
+  
+  // Update Status
+  const status = await fetch('/api/status').then(r => r.json());
+  document.getElementById('statusText').textContent = status.label.toUpperCase();
 }
-
-// 2. Keep updateStatus separate so the UI text stays current
-async function updateStatus() {
-  const data = await fetchJSON('/api/status');
-  if (!data) return;
-  document.getElementById('statusText').textContent = data.label.toUpperCase();
-}
-
-// 3. The refresh function now calls both
-async function refresh() {
-  await updateChart();
-  await updateStatus();
-  await updateLog(); // Don't forget your log table
-  await updateTotal();
-}
-
-// Start the loop
 setInterval(refresh, 5000);
 </script>
 </body>
