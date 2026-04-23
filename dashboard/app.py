@@ -5,6 +5,29 @@ import os
 
 app = Flask(__name__)
 
+import cv2
+from flask import Response
+
+# ── Video Streaming Route ────────────────────────────────────────────────────
+def generate_frames():
+    # Opens your local camera
+    camera = cv2.VideoCapture(0)
+    while True:
+        success, frame = camera.read()
+        if not success:
+            break
+        else:
+            # Encode frame as JPEG for streaming
+            _, buffer = cv2.imencode('.jpg', frame)
+            frame_bytes = buffer.tobytes()
+            # The 'yield' sends the frame to the browser
+            yield (b'--frame\r\n'
+                   b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+
+@app.route('/video_feed')
+def video_feed():
+    return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
+
 # ── MongoDB connection ─────────────────────────────────────────────────────────
 # Change this to your actual MongoDB URI (local Docker or Atlas)
 MONGO_URI = os.environ.get("MONGO_URI", "mongodb://localhost:27017/")
