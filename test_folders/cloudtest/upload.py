@@ -1,8 +1,12 @@
 
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
+from dotenv import load_dotenv
+import os
 
-uri = ""
+load_dotenv("../../.env/.env")
+
+uri = os.getenv("MONGO_URI")
 
 # Create a new client and connect to the server
 client = MongoClient(uri, server_api=ServerApi('1'))
@@ -13,3 +17,14 @@ try:
     print("Pinged your deployment. You successfully connected to MongoDB!")
 except Exception as e:
     print(e)
+
+db = client["test"]
+collection = db["test_db"]
+
+# Insert a document into the collection
+result = collection.insert_one({"name": "John", "age": 30, "city": "New York"})
+
+print("Inserted document ID:", result.inserted_id)
+
+# Count nnumber of documents in the collection
+print("Number of documents: ", collection.count_documents({}))
