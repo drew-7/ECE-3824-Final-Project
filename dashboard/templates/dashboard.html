@@ -4,106 +4,231 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Desk Security Monitor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
-  :root { --bg: #0b0e14; --surface: #12161f; --border: #1e2533; --green: #00e5a0; --red: #ff4d6d; --blue: #4db8ff; --text: #d6dce8; --muted: #5a6278; }
-  body { background: var(--bg); color: var(--text); font-family: 'Syne', sans-serif; padding: 2rem; background-image: linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px); background-size: 40px 40px; }
+  :root {
+    --bg:       #0b0e14;
+    --surface:  #12161f;
+    --border:   #1e2533;
+    --green:    #00e5a0;
+    --red:      #ff4d6d;
+    --amber:    #ffb830;
+    --blue:     #4db8ff;
+    --text:     #d6dce8;
+    --muted:    #5a6278;
+    --font-ui:  'Syne', sans-serif;
+    --font-mono:'Space Mono', monospace;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-ui);
+    min-height: 100vh;
+    padding: 2rem;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 2.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  .logo { display: flex; align-items: center; gap: 0.75rem; }
+  .logo-icon {
+    width: 40px; height: 40px;
+    border: 2px solid var(--green);
+    border-radius: 8px;
+    display: grid;
+    place-items: center;
+    font-size: 1.2rem;
+  }
+  h1 { font-family: var(--font-ui); font-weight: 800; font-size: 1.3rem; letter-spacing: -0.02em; color: #fff; }
+  h1 span { color: var(--green); }
+  .clock {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--muted);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+  }
+
   .grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1.25rem; }
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; position: relative; }
-  .card-label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 0.75rem; }
-  .status-text { font-size: 2rem; font-weight: 800; color: #fff; }
-  .stat-number { font-size: 2.4rem; font-weight: 800; color: #fff; }
-  table { width: 100%; border-collapse: collapse; font-family: 'Space Mono', monospace; font-size: 0.75rem; }
-  tbody td { padding: 0.6rem 0.75rem; color: var(--text); border-bottom: 1px solid rgba(255,255,255,.04); }
-  .tag { padding: 0.15rem 0.55rem; border-radius: 4px; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; }
-  .tag-human { background: rgba(0,229,160,.12); color: var(--green); }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.5rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,.02) 0%, transparent 60%);
+    pointer-events: none;
+  }
+  .card-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 0.75rem;
+  }
+
+  .card-status { grid-column: span 4; display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between; min-height: 180px; }
+  .status-badge { display: flex; align-items: center; gap: 0.75rem; margin-top: auto; }
+  .status-dot { width: 14px; height: 14px; border-radius: 50%; background: var(--muted); box-shadow: 0 0 0 4px rgba(255,255,255,.06); transition: background .4s, box-shadow .4s; flex-shrink: 0; }
+  .status-dot.occupied { background: var(--green); box-shadow: 0 0 0 6px rgba(0,229,160,.15), 0 0 20px rgba(0,229,160,.35); animation: pulse 2s ease-in-out infinite; }
+  @keyframes pulse {
+    0%,100% { box-shadow: 0 0 0 6px rgba(0,229,160,.15), 0 0 20px rgba(0,229,160,.35); }
+    50%      { box-shadow: 0 0 0 10px rgba(0,229,160,.08), 0 0 30px rgba(0,229,160,.5); }
+  }
+  .status-text { font-size: 2rem; font-weight: 800; letter-spacing: -0.03em; color: #fff; line-height: 1; }
+  .status-last { font-family: var(--font-mono); font-size: 0.72rem; color: var(--muted); margin-top: 0.5rem; }
+
+  .card-stat { grid-column: span 2; min-height: 120px; display: flex; flex-direction: column; justify-content: space-between; }
+  .stat-number { font-size: 2.4rem; font-weight: 800; color: #fff; letter-spacing: -0.04em; line-height: 1; }
+  .stat-sub { font-family: var(--font-mono); font-size: 0.68rem; color: var(--muted); }
+  .accent-green { color: var(--green); }
+  .accent-blue  { color: var(--blue);  }
+
+  .card-chart { grid-column: span 8; }
+  .card-chart canvas { max-height: 240px; }
+
+  .card-log { grid-column: span 12; }
+  table { width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: 0.75rem; }
+  thead th { text-align: left; padding: 0.5rem 0.75rem; font-size: 0.6rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--border); }
+  tbody tr { border-bottom: 1px solid rgba(255,255,255,.04); }
+  tbody td { padding: 0.6rem 0.75rem; color: var(--text); }
+  .tag { display: inline-block; padding: 0.15rem 0.55rem; border-radius: 4px; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+  .tag-human  { background: rgba(0,229,160,.12); color: var(--green); }
   .tag-motion { background: rgba(77,184,255,.12); color: var(--blue); }
+  .tag-noise  { background: rgba(90,98,120,.15);  color: var(--muted); }
+
+  .refresh-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 3px; background: var(--border); }
+  .refresh-progress { height: 100%; background: var(--green); width: 100%; transform-origin: left; animation: shrink 5s linear infinite; }
+  @keyframes shrink { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+
+  @media (max-width: 900px) { .card-status { grid-column: span 6; } .card-stat { grid-column: span 3; } .card-chart { grid-column: span 12; } }
+  @media (max-width: 600px) { body { padding: 1rem; } .card-status, .card-stat, .card-chart { grid-column: span 12; } }
 </style>
 </head>
 <body>
 
-<header style="margin-bottom: 2rem;"><h1>Desk <span>Security</span> Monitor</h1></header>
+<header>
+  <div class="logo">
+    <div class="logo-icon">📡</div>
+    <h1>Desk <span>Security</span> Monitor</h1>
+  </div>
+  <div class="clock" id="clock">—</div>
+</header>
 
 <div class="grid">
-  <div class="card" style="grid-column: span 4;">
+
+  <div class="card card-status">
     <div class="card-label">Occupancy Status</div>
-    <div class="status-text" id="statusText">—</div>
-    <div id="statusLast" style="font-size: 0.7rem; color: var(--muted);">Fetching...</div>
+    <div class="status-badge">
+      <div class="status-dot" id="statusDot"></div>
+      <div>
+        <div class="status-text" id="statusText">—</div>
+        <div class="status-last" id="statusLast">Fetching…</div>
+      </div>
+    </div>
   </div>
 
-  <div class="card" style="grid-column: span 2;">
+  <div class="card card-stat">
     <div class="card-label">Events / 24h</div>
-    <div class="stat-number" style="color: var(--green);" id="total24h">—</div>
+    <div class="stat-number accent-green" id="total24h">—</div>
+    <div class="stat-sub">motion events</div>
   </div>
 
-  <div class="card" style="grid-column: span 2;">
+  <div class="card card-stat">
     <div class="card-label">Last Detected</div>
-    <div class="stat-number" style="color: var(--blue); font-size: 1.5rem;" id="lastLabel">—</div>
+    <div class="stat-number accent-blue" id="lastLabel" style="font-size:1.5rem">—</div>
+    <div class="stat-sub">event type</div>
   </div>
 
-  <div class="card" style="grid-column: span 4;">
+  <div class="card card-stat">
     <div class="card-label">Live Feed</div>
-    <img src="{{ url_for('video_feed') }}" width="100%" style="border-radius:6px; border:1px solid var(--border);">
+    <div style="margin-top:.25rem;">
+      <img src="{{ url_for('video_feed') }}" width="100%" style="border-radius:6px; border:1px solid var(--border);">
+    </div>
+    <div class="stat-sub">Real-time AI monitor</div>
   </div>
 
-  <div class="card" style="grid-column: span 12;">
-    <div class="card-label">Activity — Last 60 Seconds</div>
+  <div class="card card-stat">
+    <div class="card-label">System</div>
+    <div class="stat-number accent-green" style="font-size:1rem;margin-top:.25rem;">ONLINE</div>
+    <div class="stat-sub">backend status</div>
+  </div>
+
+  <div class="card card-chart">
+    <div class="card-label">Activity — Last 24 Hours</div>
     <canvas id="activityChart"></canvas>
   </div>
 
-  <div class="card" style="grid-column: span 12;">
-    <div class="card-label">Security Log</div>
+  <div class="card card-log">
+    <div class="card-label">Security Log — Last 10 Events</div>
     <table>
-      <thead><tr><th>#</th><th>Timestamp</th><th>Duration</th><th>Label</th></tr></thead>
-      <tbody id="logBody"><tr><td colspan="4">Loading...</td></tr></tbody>
+      <thead>
+        <tr><th>#</th><th>Timestamp (UTC)</th><th>Duration (s)</th><th>Label</th></tr>
+      </thead>
+      <tbody id="logBody">
+        <tr><td colspan="4" style="color:var(--muted);padding:1rem .75rem;">Loading…</td></tr>
+      </tbody>
     </table>
   </div>
 </div>
+
+<div class="refresh-bar"><div class="refresh-progress" id="refreshBar"></div></div>
 
 <script>
 const ctx = document.getElementById('activityChart').getContext('2d');
 const activityChart = new Chart(ctx, {
   type: 'line',
-  data: { labels: [], datasets: [{ label: 'Focus (1=Human, 0=Distracted)', data: [], borderColor: '#00e5a0', fill: true, backgroundColor: 'rgba(0,229,160,0.1)' }] },
-  options: { scales: { y: { min: -0.5, max: 1.5, ticks: { stepSize: 1 } } } }
+  data: { labels: [], datasets: [{ 
+    label: 'Focus (1=Human, 0=Distracted)', 
+    data: [], 
+    borderColor: '#00e5a0', 
+    tension: 0.4,
+    fill: true,
+    backgroundColor: 'rgba(0,229,160,0.1)'
+  }] },
+  options: { 
+    responsive: true,
+    scales: { y: { min: -0.5, max: 1.5, ticks: { stepSize: 1 } } } 
+  }
 });
 
-async function fetchJSON(url) { try { const r = await fetch(url); return await r.json(); } catch(e) { return null; } }
-
 async function refresh() {
-  // Update Status & Totals
-  const status = await fetchJSON('/api/status');
-  if (status) {
-    document.getElementById('statusText').textContent = status.label.toUpperCase();
-    document.getElementById('statusLast').textContent = `Last event @ ${status.last_event}`;
-    document.getElementById('lastLabel').textContent = status.label.toUpperCase();
-  }
-  
-  const total = await fetchJSON('/api/total');
-  if (total) document.getElementById('total24h').textContent = total.total_24h;
-
   // Update Chart
-  const chartData = await fetchJSON('/api/hourly');
-  if (chartData) {
-    activityChart.data.labels = chartData.labels;
-    activityChart.data.datasets[0].data = chartData.counts;
-    activityChart.update();
-  }
-
-  // Update Log
-  const logs = await fetchJSON('/api/log');
-  const body = document.getElementById('logBody');
-  if (logs) {
-    body.innerHTML = logs.map((r, i) => `
-      <tr><td>${i+1}</td><td>${r.time}</td><td>${r.duration}s</td>
-      <td><span class="tag ${r.label === 'human' ? 'tag-human' : 'tag-motion'}">${r.label}</span></td></tr>
-    `).join('');
-  }
+  const res = await fetch('/api/hourly');
+  const data = await res.json();
+  activityChart.data.labels = data.labels;
+  activityChart.data.datasets[0].data = data.counts;
+  activityChart.update();
+  
+  // Update Status
+  const status = await fetch('/api/status').then(r => r.json());
+  document.getElementById('statusText').textContent = status.label.toUpperCase();
 }
-
 setInterval(refresh, 5000);
-refresh();
 </script>
 </body>
 </html>
