@@ -21,7 +21,7 @@ cap = cv2.VideoCapture(0)
 last_focus_time = time.time()
 alert_triggered = False
 
-print("Monitoring Eye Focus... Press 'q' to exit.")
+print("Monitoring Focus... Press 'q' to exit.")
 
 with FaceLandmarker.create_from_options(options) as detector:
     while cap.isOpened():
@@ -35,28 +35,35 @@ with FaceLandmarker.create_from_options(options) as detector:
         
         is_focused = True
         
+        # ── Drawing Logic ────────────────────────────────────────────────────
         if results.face_landmarks:
             for landmarks in results.face_landmarks:
                 h, w, _ = frame.shape
                 
-                # 1. Draw Face Square
+                # 1. Face Square
                 x_min = int(min([lm.x for lm in landmarks]) * w) - 20
                 y_min = int(min([lm.y for lm in landmarks]) * h) - 20
                 x_max = int(max([lm.x for lm in landmarks]) * w) + 20
                 y_max = int(max([lm.y for lm in landmarks]) * h) + 20
                 
-                # 2. Track Iris Points (468 for left, 473 for right)
+                # 2. Iris Circles
                 left_iris = landmarks[468]
                 right_iris = landmarks[473]
                 
-                # Logic: Check if irises are centered
                 if not (0.35 < left_iris.x < 0.65): is_focused = False
                 
-                # Draw Visuals
                 color = (0, 255, 0) if is_focused else (0, 0, 255)
+                
+                # Draw square and eye circles
                 cv2.rectangle(frame, (x_min, y_min), (x_max, y_max), color, 2)
-                cv2.circle(frame, (int(left_iris.x * w), int(left_iris.y * h)), 5, color, -1)
-                cv2.circle(frame, (int(right_iris.x * w), int(right_iris.y * h)), 5, color, -1)
+                cv2.circle(frame, (int(left_iris.x * w), int(left_iris.y * h)), 4, color, -1)
+                cv2.circle(frame, (int(right_iris.x * w), int(right_iris.y * h)), 4, color, -1)
+
+        # 3. Status Bar (Top)
+        status_text = "FOCUS DETECTED" if is_focused else "DISTRACTION DETECTED"
+        cv2.rectangle(frame, (0, 0), (w, 50), (0, 0, 0), -1) # Black background
+        cv2.putText(frame, status_text, (20, 35), cv2.FONT_HERSHEY_SIMPLEX, 1, 
+                    (0, 255, 0) if is_focused else (0, 0, 255), 2)
 
         # ── Alert Logic ──────────────────────────────────────────────────────
         if is_focused:
