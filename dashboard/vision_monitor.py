@@ -1,67 +1,63 @@
 import cv2
 import mediapipe as mp
-import requests
 import time
 import os
 
 # ── Configuration ────────────────────────────────────────────────────────────
-API_URL = "http://127.0.0.1:5050/api/event"
-API_TOKEN = "changeme-supersecret-token"
-MODEL_PATH = 'detector.tflite'  # Ensure this file is in your dashboard/ folder
+MODEL_PATH = 'detector.tflite'
+# 5 seconds threshold
+ALERT_THRESHOLD = 5.0 
 
-# ── Setup MediaPipe Detector (Modern API) ───────────────────────────────────
-BaseOptions = mp.tasks.BaseOptions
-FaceDetector = mp.tasks.vision.FaceDetector
-FaceDetectorOptions = mp.tasks.vision.FaceDetectorOptions
-VisionRunningMode = mp.tasks.vision.RunningMode
+# ── Setup MediaPipe ─────────────────────────────────────────────────────────
+mp_face_mesh = mp.solutions.face_mesh
+face_mesh = mp_face_mesh.FaceMesh(refine_landmarks=True)
 
-# Check if model exists
-if not os.path.exists(MODEL_PATH):
-    print(f"CRITICAL ERROR: Could not find {MODEL_PATH} in this folder.")
-    exit()
-
-options = FaceDetectorOptions(
-    base_options=BaseOptions(model_asset_path=MODEL_PATH),
-    running_mode=VisionRunningMode.VIDEO)
-
-# ── Camera Loop ─────────────────────────────────────────────────────────────
 cap = cv2.VideoCapture(0)
+last_focus_time = time.time()
+alert_triggered = False
 
-if not cap.isOpened():
-    print("Error: Could not access camera. Please check macOS System Settings > Privacy & Security > Camera.")
-    exit()
+print("Monitoring Eye Focus... Press 'q' to exit.")
 
-print("Starting Camera... Press 'q' to exit.")
+while cap.isOpened():
+    success, frame = cap.read()
+    if not success: continue
+    
+    frame = cv2.flip(frame, 1) # Mirror
+    rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    results = face_mesh.process(rgb_frame)
+    
+    is_focused = False
+    if results.multi_face_landmarks:
+        for face_landmarks in results.multi_face_landmarks:
+            # Simplified Gaze Logic: 
+            # In a real app, calculate iris position relative to eye corners
+            # Here we check if the face is centered/facing forward
+            nose_tip = face_landmarks.landmark[1]
+            if 0.4 < nose_tip.x < 0.6: # Face is centered
+                is_focused = True
+            
+            # Draw Square around face
+            h, w, _ = frame.shape
+            x_min = int(min([lm.x for lm in face_landmarks.landmark]) * w) - 20
+            y_min = int(min([lm.y for lm in face_landmarks.landmark]) * h) - 20
+            x_max = int(max([lm.x for lm in face_landmarks.landmark]) * w) + 20
+            y_max = int(max([lm.y for lm in face_landmarks.landmark]) * h) + 20
+            
+            color = (0, 255, 0) if is_focused else (0, 0, 255)
+            cv2.rectangle(frame, (x_min, y_min), (x_max, y_max), color, 3)
 
-with FaceDetector.create_from_options(options) as detector:
-    while cap.isOpened():
-        success, frame = cap.read()
-        if not success:
-            continue
-        
-        # Convert frame to MediaPipe format
-        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
-        
-        # Detect
-        timestamp_ms = int(time.time() * 1000)
-        results = detector.detect_for_video(mp_image, timestamp_ms)
-        
-        # ── Trigger API on detection ─────────────────────────────────────────
-        if results.detections:
-            # Uncomment the next line to actually send data to your server
-            try:
-                payload = {"duration_sec": 1.0, "label": "human"}
-                headers = {"Authorization": f"Bearer {API_TOKEN}"}
-                requests.post(API_URL, json=payload, headers=headers)
-                print("Face detected and event sent to Dashboard.")
-            except Exception as e:
-                print(f"Could not connect to dashboard: {e}")
-        
-        # Display window
-        cv2.imshow('Desk Security — Face Monitor', frame)
-        
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
+    # ── Alert Logic ──────────────────────────────────────────────────────────
+    if is_focused:
+        last_focus_time = time.time()
+        alert_triggered = False
+    else:
+        if (time.time() - last_focus_time) > ALERT_THRESHOLD and not alert_triggered:
+            print("ALERT: FOCUS LOST!")
+            # Add a system beep here: os.system('say "Focus lost"')
+            alert_triggered = True
+
+    cv2.imshow('Focus Monitor', frame)
+    if cv2.waitKey(1) & 0xFF == ord('q'): break
 
 cap.release()
 cv2.destroyAllWindows()
