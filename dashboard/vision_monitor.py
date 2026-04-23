@@ -73,7 +73,10 @@ with FaceLandmarker.create_from_options(options) as detector:
                 alert_triggered = True
 
         cv2.imshow('Focus Monitor', frame)
-        if cv2.waitKey(1) & 0xFF == ord('q'): break
+        
+        if cv2.waitKey(25) & 0xFF == ord('q'): 
+            print("Exiting...")
+            break
 
 cap.release()
 cv2.destroyAllWindows()
