@@ -11,6 +11,7 @@ import json
 load_dotenv("../../.env/.env")
 uri = os.getenv("MONGO_URI")
 # Create a new client and connect to the server
+print("Connecting to MongoDB...")
 client = MongoClient(uri, server_api=ServerApi('1'))
 
 # Send a ping to confirm a successful connection
@@ -22,8 +23,6 @@ except Exception as e:
 
 db = client["EyeDataPoints"]
 database = db["LiveData"]
-
-
 
 # Initialize webcam
 cap = cv2.VideoCapture(0)
@@ -56,27 +55,9 @@ while True:
 
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-    _, buffer = cv2.imencode(".jpg", frame)
-
-    requests.post(
-    "http://10.109.105.43:5000/frame",
-    files={"frame": buffer.tobytes()}
-    )
     # Face detection
     if frame_counter % FRAME_SKIP == 0:
         last_faces = face_cascade.detectMultiScale(gray, 1.1, 5)
-
-        try:
-            _, buffer = cv2.imencode(".jpg", frame)
-
-            requests.post(
-                BACKEND_URL,
-                files={"frame": buffer.tobytes()},
-                timeout=0.2
-                        )
-        except Exception as e:
-            print("Frame send failed:", e)
-
 
     normalized_eyes = []
 
