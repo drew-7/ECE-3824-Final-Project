@@ -74,7 +74,7 @@ The IoT Desk Security Monitor is a smart workspace surveillance system that clas
 │                     COMPLETE SYSTEM PIPELINE                        │
 │                                                                     │
 │  ┌──────────────┐    HTTP POST      ┌──────────────┐                │
-│  │ SENSOR LAYER │  ─────────────►  │  BACKEND API │                 │
+│  │ SENSOR LAYER │  ─────────────►   │  BACKEND API │                │
 │  │              │  Bearer Token     │              │                │
 │  │ Raspberry Pi │                   │ Flask/Python │                │ 
 │  │ USB Webcam   │                   │ Port 5050    │                │
