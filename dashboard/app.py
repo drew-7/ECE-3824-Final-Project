@@ -157,4 +157,5 @@ if __name__ == "__main__":
     print("✅ Starting Desk Security Monitor")
     print("✅ Dashboard → http://127.0.0.1:5050")
     print("✅ Camera feed → http://127.0.0.1:5050/video_feed")
-    app.run(debug=False, port=5050, use_reloader=False, threaded=True)
+    app.run(host="0.0.0.0", debug=False, port=5050, use_reloader=False, threaded=True)
+    
