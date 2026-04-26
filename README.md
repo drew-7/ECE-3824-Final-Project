@@ -46,12 +46,12 @@ The IoT Desk Security Monitor is a smart workspace surveillance system that clas
 | **Frontend** | HTML + Chart.js | Live dashboard, MJPEG feed |
 
 ### Key Features
-- 🎯 **Iris-based focus detection** — MediaPipe landmark 468 (left iris) determines gaze direction
-- 🔴 **Live MJPEG camera feed** embedded directly in the dashboard
-- 📊 **Focus timeline chart** — bar chart updates every 5 seconds
-- 🔐 **Bearer token authentication** on all write operations
-- 📝 **Rolling security log** — last 10 events with timestamps and labels
-- 🐳 **MongoDB in Docker** — containerized, localhost-only database
+- **Iris-based focus detection** — MediaPipe landmark 468 (left iris) determines gaze direction
+- **Live MJPEG camera feed** embedded directly in the dashboard
+- **Focus timeline chart** — bar chart updates every 5 seconds
+- **Bearer token authentication** on all write operations
+- **Rolling security log** — last 10 events with timestamps and labels
+- **MongoDB in Docker** — containerized, localhost-only database
 
 ---
 
@@ -119,7 +119,7 @@ Flask runs on port 5050 and handles three responsibilities simultaneously:
 
 The camera runs inside `generate_stream()`, a Python generator that Flask calls when a client connects to `/video_feed`. Frames are encoded as JPEG and yielded as `multipart/x-mixed-replace`.
 
-> ⚠️ **Critical**: Do not run `vision_monitor.py` and `app.py` at the same time. Both open `cv2.VideoCapture(0)` and a webcam can only be opened by one process.
+> **Critical**: Do not run `vision_monitor.py` and `app.py` at the same time. Both open `cv2.VideoCapture(0)` and a webcam can only be opened by one process.
 
 ### 3.3 Database (MongoDB)
 
