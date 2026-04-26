@@ -144,7 +144,8 @@ def hourly():
 
 @app.route("/api/total")
 def total():
-    count = events_col.count_documents({})
+    since = datetime.utcnow() - timedelta(hours=24)
+    count = events_col.count_documents({"timestamp": {"$gte": since}})
     return jsonify({"total_24h": count})
 
 @app.route("/")
@@ -157,4 +158,3 @@ if __name__ == "__main__":
     print("✅ Dashboard → http://127.0.0.1:5050")
     print("✅ Camera feed → http://127.0.0.1:5050/video_feed")
     app.run(debug=False, port=5050, use_reloader=False, threaded=True)
-    
