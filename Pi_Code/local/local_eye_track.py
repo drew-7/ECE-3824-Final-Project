@@ -2,6 +2,7 @@ from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
 from dotenv import load_dotenv
 from datetime import datetime,timezone
+from flask import Flask, Response
 import requests
 import os
 import cv2
@@ -23,6 +24,10 @@ except Exception as e:
 
 db = client["EyeDataPoints"]
 database = db["LiveData"]
+
+
+## Create flask app
+app = Flask(__name__)
 
 # Initialize webcam
 cap = cv2.VideoCapture(0)
