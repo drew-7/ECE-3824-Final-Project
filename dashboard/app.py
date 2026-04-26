@@ -1,10 +1,11 @@
 
-from flask import Flask, render_template, Response
+from flask import Flask, render_template, Response, jsonify
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
 from dotenv import load_dotenv
 import os
 import requests
+import json
 
 
 ## MongoDB overhead
@@ -40,6 +41,17 @@ def generate_stream():
 def video_feed():
     return Response(generate_stream(),
                     content_type='multipart/x-mixed-replace; boundary=frame')
+
+
+@app.route("/api/log")
+def log():
+    docs = list(database.find().sort("timestamp", -1))
+
+    return jsonify([{
+        "timestamp": d["timestamp"],
+        "left_eye": d.get("left_eye"),
+        "right_eye": d.get("right_eye")
+    } for d in docs])
 
 
 ## Connect server to backend!

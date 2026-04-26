@@ -4,426 +4,610 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Desk Security Monitor</title>
+
 <link rel="preconnect" href="https://fonts.googleapis.com" />
-<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;700;800&display=swap" rel="stylesheet" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
 <style>
-  :root {
-    --bg:       #0b0e14;
-    --surface:  #12161f;
-    --border:   #1e2533;
-    --green:    #00e5a0;
-    --red:      #ff4d6d;
-    --amber:    #ffb830;
-    --blue:     #4db8ff;
-    --text:     #d6dce8;
-    --muted:    #5a6278;
-    --font-ui:  'Syne', sans-serif;
-    --font-mono:'Space Mono', monospace;
-  }
+:root {
+  --bg: #080b10;
+  --surface: #0e1219;
+  --surface2: #141820;
+  --border: #1c2230;
+  --border2: #252d3d;
+  --green: #00e5a0;
+  --green-dim: rgba(0,229,160,0.12);
+  --red: #ff4d6d;
+  --red-dim: rgba(255,77,109,0.12);
+  --amber: #f5a623;
+  --amber-dim: rgba(245,166,35,0.1);
+  --muted: #3d4760;
+  --muted2: #5a6278;
+  --text: #c8d0e0;
+  --text-bright: #eef1f8;
+  --font-ui: 'Syne', sans-serif;
+  --font-mono: 'Space Mono', monospace;
+}
 
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--font-ui);
-    min-height: 100vh;
-    padding: 2rem;
-    background-image:
-      linear-gradient(var(--border) 1px, transparent 1px),
-      linear-gradient(90deg, var(--border) 1px, transparent 1px);
-    background-size: 40px 40px;
-  }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-ui);
+  min-height: 100vh;
+  padding: 0;
+  overflow-x: hidden;
+}
 
-  /* ── Header ─────────────────────────────────────── */
-  header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 2.5rem;
-    flex-wrap: wrap;
-    gap: 1rem;
-  }
-  .logo { display: flex; align-items: center; gap: 0.75rem; }
-  .logo-icon {
-    width: 40px; height: 40px;
-    border: 2px solid var(--green);
-    border-radius: 8px;
-    display: grid; place-items: center;
-    font-size: 1.2rem;
-  }
-  h1 { font-weight: 800; font-size: 1.3rem; letter-spacing: -0.02em; color: #fff; }
-  h1 span { color: var(--green); }
-  .clock {
-    font-family: var(--font-mono);
-    font-size: 0.8rem; color: var(--muted);
-    background: var(--surface);
-    border: 1px solid var(--border);
-    padding: 0.4rem 0.8rem; border-radius: 6px;
-  }
+/* ── SCANLINE OVERLAY ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,0.07) 2px,
+    rgba(0,0,0,0.07) 4px
+  );
+  pointer-events: none;
+  z-index: 100;
+}
 
-  /* ── Grid ────────────────────────────────────────── */
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(12, 1fr);
-    gap: 1.25rem;
-  }
+/* ── HEADER ── */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 2rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
 
-  .card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 1.5rem;
-    position: relative;
-    overflow: hidden;
-  }
-  .card::before {
-    content: '';
-    position: absolute; inset: 0;
-    background: linear-gradient(135deg, rgba(255,255,255,.02) 0%, transparent 60%);
-    pointer-events: none;
-  }
-  .card-label {
-    font-size: 0.65rem; font-weight: 700;
-    letter-spacing: 0.12em; text-transform: uppercase;
-    color: var(--muted); margin-bottom: 0.75rem;
-  }
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
 
-  /* ── Status card ────────────────────────────────── */
-  .card-status {
-    grid-column: span 3;
-    display: flex; flex-direction: column;
-    align-items: flex-start; justify-content: space-between;
-    min-height: 200px;
-  }
-  .status-badge { display: flex; align-items: center; gap: 0.75rem; margin-top: auto; }
-  .status-dot {
-    width: 14px; height: 14px; border-radius: 50%;
-    background: var(--muted);
-    box-shadow: 0 0 0 4px rgba(255,255,255,.06);
-    transition: background .4s, box-shadow .4s;
-    flex-shrink: 0;
-  }
-  .status-dot.focused {
-    background: var(--green);
-    box-shadow: 0 0 0 6px rgba(0,229,160,.15), 0 0 20px rgba(0,229,160,.35);
-    animation: pulse-green 2s ease-in-out infinite;
-  }
-  .status-dot.distracted {
-    background: var(--red);
-    box-shadow: 0 0 0 6px rgba(255,77,109,.15), 0 0 20px rgba(255,77,109,.35);
-    animation: pulse-red 2s ease-in-out infinite;
-  }
-  .status-dot.vacant { background: var(--muted); }
+.logo-icon {
+  width: 32px;
+  height: 32px;
+  border: 1.5px solid var(--green);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
 
-  @keyframes pulse-green {
-    0%,100% { box-shadow: 0 0 0 6px rgba(0,229,160,.15), 0 0 20px rgba(0,229,160,.35); }
-    50%      { box-shadow: 0 0 0 10px rgba(0,229,160,.08), 0 0 30px rgba(0,229,160,.5); }
-  }
-  @keyframes pulse-red {
-    0%,100% { box-shadow: 0 0 0 6px rgba(255,77,109,.15), 0 0 20px rgba(255,77,109,.35); }
-    50%      { box-shadow: 0 0 0 10px rgba(255,77,109,.08), 0 0 30px rgba(255,77,109,.5); }
-  }
+.logo-icon::after {
+  content: '';
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 8px var(--green);
+  animation: pulse 2s ease-in-out infinite;
+}
 
-  .status-text { font-size: 1.7rem; font-weight: 800; letter-spacing: -0.03em; color: #fff; line-height: 1; }
-  .status-last { font-family: var(--font-mono); font-size: 0.72rem; color: var(--muted); margin-top: 0.5rem; }
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.85); }
+}
 
-  /* ── Stat cards ─────────────────────────────────── */
-  .card-stat {
-    grid-column: span 2;
-    min-height: 120px;
-    display: flex; flex-direction: column; justify-content: space-between;
-  }
-  .stat-number { font-size: 2.2rem; font-weight: 800; color: #fff; letter-spacing: -0.04em; line-height: 1; }
-  .stat-sub { font-family: var(--font-mono); font-size: 0.68rem; color: var(--muted); }
-  .accent-green { color: var(--green); }
-  .accent-amber { color: var(--amber); }
-  .accent-blue  { color: var(--blue);  }
-  .accent-red   { color: var(--red);   }
+.logo-text {
+  font-size: 0.7rem;
+  font-family: var(--font-mono);
+  color: var(--muted2);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
 
-  /* ── Camera card ─────────────────────────────────── */
-  .card-camera {
-    grid-column: span 4;
-    display: flex; flex-direction: column;
-    min-height: 200px;
-    padding: 0;
-    overflow: hidden;
-    border-radius: 14px;
-  }
-  .camera-header {
-    padding: 0.85rem 1.2rem 0.6rem;
-    display: flex; align-items: center; justify-content: space-between;
-    background: var(--surface);
-    flex-shrink: 0;
-  }
-  .camera-header .card-label { margin-bottom: 0; }
-  .live-badge {
-    display: flex; align-items: center; gap: 0.4rem;
-    font-family: var(--font-mono); font-size: 0.65rem;
-    color: var(--red); font-weight: 700;
-    letter-spacing: 0.08em;
-  }
-  .live-dot {
-    width: 7px; height: 7px; border-radius: 50%;
-    background: var(--red);
-    animation: blink 1.2s ease-in-out infinite;
-  }
-  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+.logo-title {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--text-bright);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
 
-  .camera-feed-wrapper {
-    flex: 1; position: relative;
-    background: #000;
-    min-height: 220px;
-  }
-  .camera-feed-wrapper iframe {
-    width: 100%; height: 100%;
-    min-height: 220px;
-    border: none;
-    display: block;
-  }
-  /* overlay label on top of camera */
-  .camera-overlay {
-    position: absolute;
-    top: 0.5rem; left: 0.5rem;
-    padding: 0.2rem 0.6rem;
-    border-radius: 5px;
-    font-family: var(--font-mono);
-    font-size: 0.7rem; font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    transition: background .4s, color .4s;
-    pointer-events: none;
-  }
-  .camera-overlay.focused    { background: rgba(0,229,160,.25); color: var(--green); border: 1px solid var(--green); }
-  .camera-overlay.distracted { background: rgba(255,77,109,.25); color: var(--red);   border: 1px solid var(--red);   }
-  .camera-overlay.vacant     { background: rgba(90,98,120,.25);  color: var(--muted); border: 1px solid var(--muted); }
+.header-meta {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
 
-  /* ── Chart card ─────────────────────────────────── */
-  .card-chart { grid-column: span 7; }
-  .card-chart canvas { max-height: 220px; }
+.clock {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--muted2);
+  letter-spacing: 0.08em;
+}
 
-  /* ── Log card ───────────────────────────────────── */
-  .card-log { grid-column: span 12; }
-  table { width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: 0.75rem; }
-  thead th {
-    text-align: left; padding: 0.5rem 0.75rem;
-    font-size: 0.6rem; letter-spacing: 0.1em; text-transform: uppercase;
-    color: var(--muted); border-bottom: 1px solid var(--border);
-  }
-  tbody tr { border-bottom: 1px solid rgba(255,255,255,.04); transition: background .15s; }
-  tbody tr:hover { background: rgba(255,255,255,.03); }
-  tbody td { padding: 0.6rem 0.75rem; color: var(--text); }
+.header-badge {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--border2);
+  color: var(--muted2);
+}
 
-  .tag {
-    display: inline-block; padding: 0.15rem 0.55rem;
-    border-radius: 4px; font-size: 0.65rem; font-weight: 700;
-    text-transform: uppercase; letter-spacing: 0.05em;
-  }
-  .tag-human     { background: rgba(0,229,160,.12);   color: var(--green); }
-  .tag-focused   { background: rgba(0,229,160,.12);   color: var(--green); }
-  .tag-distracted{ background: rgba(255,77,109,.12);  color: var(--red);   }
-  .tag-motion    { background: rgba(77,184,255,.12);  color: var(--blue);  }
-  .tag-noise     { background: rgba(90,98,120,.15);   color: var(--muted); }
+main {
+  padding: 1.5rem 2rem;
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  grid-template-rows: auto auto;
+  gap: 1rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
 
-  /* ── Focus score bar ─────────────────────────────── */
-  .focus-bar-wrap {
-    margin-top: 1rem;
-    background: var(--border);
-    border-radius: 99px;
-    height: 6px;
-    overflow: hidden;
-  }
-  .focus-bar-fill {
-    height: 100%;
-    border-radius: 99px;
-    background: var(--green);
-    transition: width .6s ease, background .4s;
-    width: 0%;
-  }
-  .focus-score-label {
-    font-family: var(--font-mono); font-size: 0.65rem;
-    color: var(--muted); margin-top: 0.35rem;
-  }
+/* ── CARDS ── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
 
-  /* ── Refresh indicator ──────────────────────────── */
-  .refresh-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 3px; background: var(--border); }
-  .refresh-progress {
-    height: 100%; background: var(--green); width: 100%;
-    transform-origin: left;
-    animation: shrink 5s linear infinite;
-  }
-  @keyframes shrink { from{transform:scaleX(1)} to{transform:scaleX(0)} }
+.card-header {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
 
-  /* ── Responsive ─────────────────────────────────── */
-  @media (max-width: 1000px) {
-    .card-status, .card-camera { grid-column: span 6; }
-    .card-stat   { grid-column: span 3; }
-    .card-chart  { grid-column: span 12; }
-  }
-  @media (max-width: 600px) {
-    body { padding: 1rem; }
-    .card-status,.card-stat,.card-camera,.card-chart { grid-column: span 12; }
-  }
+.card-label {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted2);
+}
+
+.card-body {
+  padding: 1rem;
+}
+
+/* ── STATUS CARD ── */
+.card-status {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.status-main {
+  padding: 1.25rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.status-dot-wrap {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--muted);
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  transition: background 0.4s;
+}
+
+.status-ring {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1.5px solid var(--muted);
+  position: absolute;
+  top: 0; left: 0;
+  opacity: 0;
+  transition: border-color 0.4s;
+}
+
+.status-dot.focused { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.status-dot.focused ~ .status-ring { border-color: var(--green); opacity: 1; animation: ring-pulse 1.8s ease-out infinite; }
+.status-dot.distracted { background: var(--red); box-shadow: 0 0 6px var(--red); }
+.status-dot.distracted ~ .status-ring { border-color: var(--red); opacity: 1; animation: ring-pulse 0.9s ease-out infinite; }
+
+@keyframes ring-pulse {
+  0% { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
+.status-label-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.status-sublabel {
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.14em;
+  color: var(--muted2);
+  text-transform: uppercase;
+}
+
+.status-value {
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-bright);
+  transition: color 0.4s;
+}
+
+.status-value.focused { color: var(--green); }
+.status-value.distracted { color: var(--red); }
+
+/* ── STAT ROWS ── */
+.stat-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.stat-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.stat-key {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
+  color: var(--muted2);
+  text-transform: uppercase;
+}
+
+.stat-val {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-bright);
+}
+
+.stat-val.green { color: var(--green); }
+.stat-val.red { color: var(--red); }
+
+
+.card-camera {
+  grid-column: 1;
+  grid-row: 2;
+  height: fit-content;
+}
+
+.camera-frame {
+  position: relative;
+  background: #000;
+}
+
+.camera-frame iframe {
+  width: 100%;
+  height: 220px;
+  border: none;
+  display: block;
+}
+
+.camera-overlay {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  pointer-events: none;
+}
+
+/* corner brackets */
+.camera-overlay::before,
+.camera-overlay::after {
+  content: '';
+  position: absolute;
+  width: 16px; height: 16px;
+  border-color: var(--green);
+  border-style: solid;
+  opacity: 0.7;
+}
+.camera-overlay::before { top: 8px; left: 8px; border-width: 2px 0 0 2px; }
+.camera-overlay::after  { bottom: 8px; right: 8px; border-width: 0 2px 2px 0; }
+
+.rec-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(0,0,0,0.6);
+  border: 1px solid rgba(255,77,109,0.4);
+  border-radius: 4px;
+  padding: 3px 8px;
+}
+
+.rec-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--red);
+  animation: blink 1.2s step-start infinite;
+}
+
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+.rec-text {
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  letter-spacing: 0.15em;
+  color: var(--red);
+}
+
+/* ── SCATTER CARD ── */
+.card-scatter {
+  grid-column: 2;
+  grid-row: 1 / 3;
+}
+
+.scatter-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.page-label {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--muted2);
+  min-width: 90px;
+  text-align: center;
+  letter-spacing: 0.08em;
+}
+
+.nav-btn {
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  color: var(--muted2);
+  border-radius: 5px;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.nav-btn:not(:disabled):hover {
+  border-color: var(--green);
+  color: var(--green);
+}
+
+.nav-btn:disabled {
+  opacity: 0.25;
+  cursor: default;
+}
+
+.scatter-body {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.chart-wrap {
+  height: 380px;
+  position: relative;
+}
+
+
+.chart-wrap canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* legend */
+.chart-legend {
+  display: flex;
+  gap: 1.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.legend-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+}
+
+.legend-label {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  color: var(--muted2);
+  text-transform: uppercase;
+}
+
+/* ── AXIS HINT LABELS ── */
+.axis-hints {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.axis-hint {
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.axis-hint.right { text-align: right; }
 </style>
 </head>
+
 <body>
 
+<!-- ── HEADER ── -->
 <header>
   <div class="logo">
-    <div class="logo-icon">📡</div>
-    <h1>Desk <span>Security</span> Monitor</h1>
+    <div class="logo-icon"></div>
+    <div>
+      <div class="logo-text">Anthropic &bull; Workspace</div>
+      <div class="logo-title">Desk Monitor</div>
+    </div>
   </div>
-  <div class="clock" id="clock">—</div>
+
+  <div class="header-meta">
+    <div class="clock" id="clock">--:--:--</div>
+    <div class="header-badge">Session Active</div>
+  </div>
 </header>
 
-<div class="grid">
+<!-- ── MAIN ── -->
+<main>
 
-  <!-- ── Occupancy Status ── -->
+  <!-- STATUS -->
   <div class="card card-status">
-    <div class="card-label">Focus Status</div>
-    <div class="status-badge">
-      <div class="status-dot vacant" id="statusDot"></div>
-      <div>
-        <div class="status-text" id="statusText">—</div>
-        <div class="status-last" id="statusLast">Fetching…</div>
+    <div class="card-header">
+      <span class="card-label">Focus State</span>
+      <span class="card-label" id="lastUpdate">—</span>
+    </div>
+    <div class="status-main">
+      <div class="status-indicator">
+        <div class="status-dot-wrap">
+          <div class="status-dot" id="statusDot"></div>
+          <div class="status-ring"></div>
+        </div>
+        <div class="status-label-wrap">
+          <span class="status-sublabel">Current Status</span>
+          <span class="status-value" id="statusText">—</span>
+        </div>
+      </div>
+
+      <div class="stat-row">
+        <div class="stat-item">
+          <span class="stat-key">Session ID</span>
+          <span class="stat-val" id="sessionId">—</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-key">Refresh Rate</span>
+          <span class="stat-val green">1 Hz</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-key">Data Points</span>
+          <span class="stat-val" id="totalPoints">—</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-key">Eyes Detected</span>
+          <span class="stat-val" id="eyesDetected">—</span>
+        </div>
       </div>
     </div>
-    <div class="focus-bar-wrap">
-      <div class="focus-bar-fill" id="focusBar"></div>
-    </div>
-    <div class="focus-score-label" id="focusScore">focus rate: —</div>
   </div>
 
-  <!-- ── Events 24h ── -->
-  <div class="card card-stat">
-    <div class="card-label">Total Events</div>
-    <div class="stat-number accent-green" id="total24h">—</div>
-    <div class="stat-sub">all time</div>
-  </div>
-
-  <!-- ── Focused count ── -->
-  <div class="card card-stat">
-    <div class="card-label">Focused</div>
-    <div class="stat-number accent-green" id="focusedCount">—</div>
-    <div class="stat-sub">last 60s</div>
-  </div>
-
-  <!-- ── Distracted count ── -->
-  <div class="card card-stat">
-    <div class="card-label">Distracted</div>
-    <div class="stat-number accent-red" id="distractedCount">—</div>
-    <div class="stat-sub">last 60s</div>
-  </div>
-
-  <!-- ── Live Camera Feed ── -->
+  <!-- CAMERA -->
   <div class="card card-camera">
-    <div class="camera-header">
-      <div class="card-label">Live Camera Feed</div>
-      <div class="live-badge"><div class="live-dot"></div>LIVE</div>
+    <div class="card-header">
+      <span class="card-label">Live Feed</span>
+      <span class="card-label">CAM-01</span>
     </div>
-    <div class="camera-feed-wrapper">
-      <iframe src="/video_feed" scrolling="no" style="width:100%;height:220px;border:none;"></iframe>
-      <div class="camera-overlay vacant" id="cameraOverlay">—</div>
+    <div class="camera-frame">
+      <iframe src="/video_feed"></iframe>
+      <div class="camera-overlay">
+        <div class="rec-badge">
+          <div class="rec-dot"></div>
+          <span class="rec-text">REC</span>
+        </div>
+      </div>
     </div>
   </div>
 
-  <!-- ── Activity Chart ── -->
-  <div class="card card-chart">
-    <div class="card-label">Focus Timeline — Last 60 Seconds</div>
-    <canvas id="activityChart"></canvas>
+  <!-- SCATTER -->
+  <div class="card card-scatter">
+    <div class="card-header">
+      <span class="card-label">Eye Position Tracking &mdash; XY Gaze Map</span>
+      <div class="scatter-controls">
+        <button class="nav-btn" id="btnBack" onclick="changePage(1)" title="Older data">&#8592;</button>
+        <span class="page-label" id="pageLabel">latest</span>
+        <button class="nav-btn" id="btnFwd" onclick="changePage(-1)" title="Newer data">&#8594;</button>
+      </div>
+    </div>
+
+    <div class="scatter-body">
+      <div class="axis-hints">
+        <span class="axis-hint">&#8592; Left</span>
+        <span class="axis-hint right">Right &#8594;</span>
+      </div>
+
+      <div class="chart-wrap">
+        <canvas id="eyeChart"></canvas>
+      </div>
+
+      <div class="axis-hints">
+        <span class="axis-hint">&#8595; Down</span>
+        <span class="axis-hint right">Up &#8593;</span>
+      </div>
+
+      <div class="chart-legend">
+        <div class="legend-item">
+          <div class="legend-dot" style="background:var(--green)"></div>
+          <span class="legend-label">Left Eye</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:var(--red)"></div>
+          <span class="legend-label">Right Eye</span>
+        </div>
+        <div style="margin-left:auto;">
+          <span class="axis-hint">200 pts / page</span>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <!-- ── Security Log ── -->
-  <div class="card card-log">
-    <div class="card-label">Session Log — Last 10 Events</div>
-    <table>
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>Timestamp (UTC)</th>
-          <th>Duration (s)</th>
-          <th>Status</th>
-        </tr>
-      </thead>
-      <tbody id="logBody">
-        <tr><td colspan="4" style="color:var(--muted);padding:1rem .75rem;">Loading…</td></tr>
-      </tbody>
-    </table>
-  </div>
-
-</div><!-- .grid -->
-
-<div class="refresh-bar"><div class="refresh-progress" id="refreshBar"></div></div>
+</main>
 
 <script>
-// ── Clock ─────────────────────────────────────────────────────────────────────
+
+// ── CLOCK ──
 function updateClock() {
   const now = new Date();
-  document.getElementById('clock').textContent =
-    now.toLocaleTimeString('en-US', {hour12: false}) +
-    ' UTC' + (now.getTimezoneOffset() > 0 ? '-' : '+') +
-    String(Math.abs(now.getTimezoneOffset() / 60)).padStart(2, '0');
+  document.getElementById("clock").textContent =
+    now.toLocaleTimeString('en-GB', { hour12: false });
 }
-setInterval(updateClock, 1000);
 updateClock();
+setInterval(updateClock, 1000);
 
-// ── Chart Setup ───────────────────────────────────────────────────────────────
-const ctx = document.getElementById('activityChart').getContext('2d');
+// ── SESSION ID (random on load) ──
+document.getElementById("sessionId").textContent =
+  "SES-" + Math.random().toString(36).slice(2,7).toUpperCase();
 
-// Two datasets: focused (green) and distracted (red)
-const activityChart = new Chart(ctx, {
-  type: 'bar',
-  data: {
-    labels: [],
-    datasets: [
-      {
-        label: 'Focused',
-        data: [],
-        backgroundColor: 'rgba(0,229,160,0.55)',
-        borderColor: '#00e5a0',
-        borderWidth: 1.5,
-        borderRadius: 4,
-        borderSkipped: false,
-      },
-      {
-        label: 'Distracted',
-        data: [],
-        backgroundColor: 'rgba(255,77,109,0.45)',
-        borderColor: '#ff4d6d',
-        borderWidth: 1.5,
-        borderRadius: 4,
-        borderSkipped: false,
-      }
-    ]
-  },
-  options: {
-    responsive: true,
-    animation: { duration: 400 },
-    plugins: {
-      legend: {
-        display: true,
-        labels: { color: '#5a6278', font: { family: 'Space Mono', size: 10 } }
-      }
-    },
-    scales: {
-      x: {
-        stacked: true,
-        ticks: { color: '#5a6278', font: { family: 'Space Mono', size: 9 }, maxRotation: 45, maxTicksLimit: 12 },
-        grid: { color: 'rgba(255,255,255,.04)' },
-      },
-      y: {
-        stacked: true,
-        ticks: { color: '#5a6278', font: { family: 'Space Mono', size: 10 }, stepSize: 1 },
-        grid: { color: 'rgba(255,255,255,.06)' },
-        beginAtZero: true,
-        max: 1,
-      }
-    }
-  }
-});
-
-// ── Fetch Helper ──────────────────────────────────────────────────────────────
+// ── FETCH ──
 async function fetchJSON(url) {
   try {
     const r = await fetch(url);
@@ -431,114 +615,165 @@ async function fetchJSON(url) {
   } catch(e) { return null; }
 }
 
-// ── Status Card ───────────────────────────────────────────────────────────────
+// ── STATUS ──
 async function updateStatus() {
-  const data = await fetchJSON('/api/status');
-  if (!data) return;
+  const d = await fetchJSON("/api/status");
+  if (!d) return;
 
-  const dot     = document.getElementById('statusDot');
-  const text    = document.getElementById('statusText');
-  const last    = document.getElementById('statusLast');
-  const overlay = document.getElementById('cameraOverlay');
+  const label = d.label.toLowerCase();
+  const textEl = document.getElementById("statusText");
+  const dotEl  = document.getElementById("statusDot");
 
-  const label = data.label || 'vacant';
+  textEl.textContent = label.toUpperCase();
+  textEl.className = "status-value " + label;
+  dotEl.className  = "status-dot " + label;
 
-  // dot classes: focused | distracted | vacant
-  dot.className = 'status-dot ' + label;
-  overlay.className = 'camera-overlay ' + label;
-  overlay.textContent = label.toUpperCase();
+  document.getElementById("lastUpdate").textContent =
+    new Date().toLocaleTimeString('en-GB', { hour12: false });
+}
 
-  if (label === 'human' || label === 'focused') {
-    text.textContent = 'FOCUSED';
-    text.style.color = 'var(--green)';
-  } else if (label === 'distracted') {
-    text.textContent = 'DISTRACTED';
-    text.style.color = 'var(--red)';
+// ── SCATTER CHART ──
+const PAGE_SIZE = 200;
+let pageOffset = 0;
+let allData = [];
+
+const eyeChart = new Chart(document.getElementById("eyeChart"), {
+  type: "scatter",
+  data: {
+    datasets: [
+      {
+        label: "Left Eye",
+        data: [],
+        borderColor: "#00e5a0",
+        backgroundColor: "rgba(0,229,160,0.55)",
+        pointRadius: 3.5,
+        pointHoverRadius: 5
+      },
+      {
+        label: "Right Eye",
+        data: [],
+        borderColor: "#ff4d6d",
+        backgroundColor: "rgba(255,77,109,0.55)",
+        pointRadius: 3.5,
+        pointHoverRadius: 5
+      }
+    ]
+  },
+  options: {
+    animation: false,
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: "#0e1219",
+        borderColor: "#1c2230",
+        borderWidth: 1,
+        titleFont: { family: "'Space Mono', monospace", size: 10 },
+        bodyFont:  { family: "'Space Mono', monospace", size: 10 },
+        callbacks: {
+          label: ctx => ` x: ${ctx.parsed.x.toFixed(3)}  y: ${ctx.parsed.y.toFixed(3)}`
+        }
+      }
+    },
+    scales: {
+      x: {
+        min: 0, max: 1,
+        grid: { color: "#1c2230", drawBorder: false },
+        ticks: {
+          color: "#3d4760",
+          font: { family: "'Space Mono', monospace", size: 9 },
+          maxTicksLimit: 6
+        },
+        title: {
+          display: true,
+          text: "Horizontal Position",
+          color: "#3d4760",
+          font: { family: "'Space Mono', monospace", size: 9 }
+        }
+      },
+      y: {
+        min: 0, max: 1,
+        grid: { color: "#1c2230", drawBorder: false },
+        ticks: {
+          color: "#3d4760",
+          font: { family: "'Space Mono', monospace", size: 9 },
+          maxTicksLimit: 6
+        },
+        title: {
+          display: true,
+          text: "Vertical Position",
+          color: "#3d4760",
+          font: { family: "'Space Mono', monospace", size: 9 }
+        }
+      }
+    }
+  }
+});
+
+function renderPage() {
+  const start = pageOffset * PAGE_SIZE;
+  const slice = allData.slice(start, start + PAGE_SIZE);
+
+  const left = [], right = [];
+  let eyesFound = 0;
+
+  slice.forEach(p => {
+    if (p.left_eye && typeof p.left_eye.x === "number") {
+      left.push({ x: p.left_eye.x, y: p.left_eye.y });
+      eyesFound++;
+    }
+    if (p.right_eye && typeof p.right_eye.x === "number") {
+      right.push({ x: p.right_eye.x, y: p.right_eye.y });
+      eyesFound++;
+    }
+  });
+
+  eyeChart.data.datasets[0].data = left;
+  eyeChart.data.datasets[1].data = right;
+  eyeChart.update();
+
+  const maxOffset = Math.max(0, Math.ceil(allData.length / PAGE_SIZE) - 1);
+  const labelEl = document.getElementById("pageLabel");
+  if (pageOffset === 0) {
+    labelEl.textContent = "latest";
   } else {
-    text.textContent = 'VACANT';
-    text.style.color = 'var(--muted)';
+    labelEl.textContent = `${start + 1}–${Math.min(start + PAGE_SIZE, allData.length)}`;
   }
 
-  last.textContent = `Last event @ ${data.last_event}`;
+  document.getElementById("totalPoints").textContent =
+    allData.length.toLocaleString();
+  document.getElementById("eyesDetected").textContent =
+    eyesFound > 0 ? "Both" : "None";
+
+  const backBtn = document.getElementById("btnBack");
+  const fwdBtn  = document.getElementById("btnFwd");
+  backBtn.disabled = start + PAGE_SIZE >= allData.length;
+  fwdBtn.disabled  = pageOffset === 0;
 }
 
-// ── Total Count ───────────────────────────────────────────────────────────────
-async function updateTotal() {
-  const data = await fetchJSON('/api/total');
-  if (data) document.getElementById('total24h').textContent = data.total_24h;
+function changePage(dir) {
+  const maxOffset = Math.max(0, Math.ceil(allData.length / PAGE_SIZE) - 1);
+  pageOffset = Math.max(0, Math.min(maxOffset, pageOffset + dir));
+  renderPage();
 }
 
-// ── Chart + Focus Counts ──────────────────────────────────────────────────────
-async function updateChart() {
-  const data = await fetchJSON('/api/hourly');
-  if (!data) return;
-
-  const labels  = data.labels;
-  const counts  = data.counts; // 1 = focused, 0 = distracted
-
-  // Build two parallel arrays
-  const focused    = counts.map(v => v === 1 ? 1 : 0);
-  const distracted = counts.map(v => v === 0 ? 1 : 0);
-
-  activityChart.data.labels = labels;
-  activityChart.data.datasets[0].data = focused;
-  activityChart.data.datasets[1].data = distracted;
-  activityChart.update();
-
-  // Update focused / distracted counters
-  const fCount = focused.reduce((a, b) => a + b, 0);
-  const dCount = distracted.reduce((a, b) => a + b, 0);
-  const total  = fCount + dCount;
-
-  document.getElementById('focusedCount').textContent    = fCount;
-  document.getElementById('distractedCount').textContent = dCount;
-
-  // Focus rate bar
-  const rate = total > 0 ? Math.round((fCount / total) * 100) : 0;
-  const bar  = document.getElementById('focusBar');
-  bar.style.width = rate + '%';
-  bar.style.background = rate > 60 ? 'var(--green)' : rate > 30 ? 'var(--amber)' : 'var(--red)';
-  document.getElementById('focusScore').textContent = `focus rate: ${rate}%`;
+async function updateEyeData() {
+  const d = await fetchJSON("/api/log");
+  if (!d) return;
+  allData = d;
+  renderPage();
 }
 
-// ── Log Table ─────────────────────────────────────────────────────────────────
-function tagClass(label) {
-  if (label === 'human' || label === 'focused') return 'tag tag-focused';
-  if (label === 'distracted') return 'tag tag-distracted';
-  if (label === 'noise')      return 'tag tag-noise';
-  return 'tag tag-motion';
-}
-
-async function updateLog() {
-  const rows = await fetchJSON('/api/log');
-  const body = document.getElementById('logBody');
-  if (!rows || rows.length === 0) {
-    body.innerHTML = '<tr><td colspan="4" style="color:var(--muted);padding:1rem .75rem;">No events yet</td></tr>';
-    return;
-  }
-  body.innerHTML = rows.map((r, i) => `
-    <tr>
-      <td style="color:var(--muted)">${i + 1}</td>
-      <td>${r.time}</td>
-      <td>${r.duration}s</td>
-      <td><span class="${tagClass(r.label)}">${r.label}</span></td>
-    </tr>
-  `).join('');
-}
-
-// ── Refresh Loop (every 5 seconds) ────────────────────────────────────────────
+// ── LOOP ──
 async function refresh() {
-  await Promise.all([updateStatus(), updateTotal(), updateChart(), updateLog()]);
-
-  // restart CSS progress bar
-  const bar = document.getElementById('refreshBar');
-  bar.style.animation = 'none';
-  bar.offsetHeight; // force reflow
-  bar.style.animation = '';
+  updateStatus();
+  updateEyeData();
 }
 
 refresh();
-setInterval(refresh, 5000);
+setInterval(refresh, 1000);
+
 </script>
 </body>
 </html>
