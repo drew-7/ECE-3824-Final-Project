@@ -1,4 +1,4 @@
-#  IoT Desk Security Monitor
+# IoT Desk Security Monitor
 
 > **ECE-3824 Final Project** | Dhruvil Patel & Samuel Georgi | Spring 2026
 
@@ -13,7 +13,7 @@ A complete end-to-end IoT pipeline that uses computer vision to monitor whether 
 
 ---
 
-## 📋 Table of Contents
+## Table of Contents
 
 1. [Project Overview](#1-project-overview)
 2. [Hardware Requirements](#2-hardware-requirements)
