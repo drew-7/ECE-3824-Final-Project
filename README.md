@@ -2,7 +2,7 @@
 
 > **ECE-3824 Final Project** | Dhruvil Patel & Samuel Georgi | Spring 2026
 
-A complete end-to-end IoT pipeline that uses computer vision to monitor whether a person at a desk is **focused or distracted**. A Raspberry Pi 4 runs MediaPipe iris tracking locally, transmits labeled events securely to a Flask backend, stores them in MongoDB, and displays everything on a live web dashboard.
+A complete end-to-end IoT pipeline that uses computer vision to monitor whether a person at a desk is **focused or distracted**. A Raspberry Pi 3 runs MediaPipe iris tracking locally, transmits labeled events securely to a Flask backend, stores them in MongoDB, and displays everything on a live web dashboard.
 
 ![Python](https://img.shields.io/badge/Python-3.10+-blue?style=flat-square&logo=python)
 ![Flask](https://img.shields.io/badge/Flask-3.1.3-black?style=flat-square&logo=flask)
@@ -39,7 +39,7 @@ The IoT Desk Security Monitor is a smart workspace surveillance system that clas
 
 | Layer | Technology | Role |
 |---|---|---|
-| **Sensor** | Raspberry Pi 4 + USB Webcam | Captures video, runs MediaPipe |
+| **Sensor** | Raspberry Pi 3 + USB Webcam | Captures video, runs MediaPipe |
 | **Detection** | OpenCV + MediaPipe Face Landmarker | Iris tracking, focus classification |
 | **Backend** | Flask (Python) | REST API, video stream, dashboard |
 | **Database** | MongoDB in Docker | Time-series event storage |
@@ -59,7 +59,7 @@ The IoT Desk Security Monitor is a smart workspace surveillance system that clas
 
 | Component | Specification | Notes |
 |---|---|---|
-| Processor | Raspberry Pi 3, 4, or 5 | Pi 3 Used |
+| Processor | Raspberry Pi 3, 4, or 5 | Pi 4 recommended for MediaPipe performance |
 | Camera | Standard USB Webcam (UVC) | Plug-and-play, no driver needed |
 | Connectivity | Onboard WiFi 802.11ac | Connects to `tuiot` network |
 | Storage | MicroSD 16GB+ | OS + Python environment |
@@ -74,9 +74,9 @@ The IoT Desk Security Monitor is a smart workspace surveillance system that clas
 │                     COMPLETE SYSTEM PIPELINE                        │
 │                                                                     │
 │  ┌──────────────┐    HTTP POST      ┌──────────────┐                │
-│  │ SENSOR LAYER │  ─────────────►   │  BACKEND API │                │
+│  │ SENSOR LAYER │  ─────────────►   │  BACKEND API |                │
 │  │              │  Bearer Token     │              │                │
-│  │ Raspberry Pi │                   │ Flask/Python │                │ 
+│  │ Raspberry Pi │                   │ Flask/Python │                │
 │  │ USB Webcam   │                   │ Port 5050    │                │
 │  │ OpenCV       │                   │ JSON/REST    │                │
 │  │ MediaPipe    │                   └──────┬───────┘                │
@@ -118,8 +118,6 @@ Flask runs on port 5050 and handles three responsibilities simultaneously:
 - **Web dashboard** — serves `dashboard.html` at the root route
 
 The camera runs inside `generate_stream()`, a Python generator that Flask calls when a client connects to `/video_feed`. Frames are encoded as JPEG and yielded as `multipart/x-mixed-replace`.
-
-> **Critical**: Do not run `vision_monitor.py` and `app.py` at the same time. Both open `cv2.VideoCapture(0)` and a webcam can only be opened by one process.
 
 ### 3.3 Database (MongoDB)
 
@@ -180,20 +178,27 @@ ECE-3824-Final-Project/
 ├── dashboard/
 │   ├── app.py                    ← Main Flask server (camera + API + dashboard)
 │   ├── requirements.txt          ← Python dependencies
-│   ├── face_landmarker.task      ← MediaPipe model file (download separately)
-│   ├── seed_demo.py              ← Populate fake data for UI testing
 │   └── templates/
 │       └── dashboard.html        ← Single-page dashboard UI
 ├── Pi_Code/
 │   ├── cv_test.py                ← Facial feature detection stream (Pi only)
-│   └── sensor.py                 ← Basic MongoDB write test
+│   └── pi_eye_track.py           ← Basic MongoDB write test
+│   └── local/
+│       └── flask_eye_track.py     ← Testing iris tracking
+│       └── local_eye_track.py     ← Testing iris tracking on local device
 ├── test_folders/
 │   ├── camera_test/
 │   │   └── view_camera.py        ← Basic MJPEG camera stream test
+│   ├── cloudtest/
+│   │   └── pull.py               ← Basic data sent to hardware
+│   │   └── upload.py             ← uploading the pull data 
 │   ├── dockerTest/
 │   │   ├── compose.yml           ← MongoDB Docker Compose config
 │   │   ├── receive.py            ← Read from MongoDB test
 │   │   └── upload.py             ← Write to MongoDB test
+│   ├── flaskvideotest/
+│   │   ├── send_video.py         ← loading the camera on host 
+│   │   ├── show_video.py         ← Display the required resolution on host 
 │   └── face_test/
 │       ├── local/
 │       │   └── face_scan_local.py  ← OpenCV Haar cascade scan (no Pi needed)
@@ -201,6 +206,7 @@ ECE-3824-Final-Project/
 │       └── mediapipe_test.py       ← MediaPipe face mesh stream (Pi)
 ├── Server_Code/
 │   └── main.py                   ← FastAPI alternative backend
+│   └── upload.py                 ← FastAPI alternative backend to upload then data
 └── README.md                     ← This file
 ```
 
@@ -213,159 +219,118 @@ ECE-3824-Final-Project/
 This is the **only file you need to run**. It handles camera, MediaPipe, MongoDB writes, video streaming, all API routes, and the dashboard.
 
 ```python
-import cv2
-import mediapipe as mp
-import time
+from flask import Flask, render_template, Response, jsonify
+from pymongo.mongo_client import MongoClient
+from pymongo.server_api import ServerApi
+from dotenv import load_dotenv
+from datetime import datetime, timezone
 import os
-from datetime import datetime, timedelta
-from flask import Flask, jsonify, render_template, Response
-from pymongo import MongoClient
+import requests
+
+## MongoDB overhead
+load_dotenv("../.env/.env")
+uri = os.getenv("MONGO_URI")
+
+print("Connecting to MongoDB...")
+client = MongoClient(uri, server_api=ServerApi('1'))
+
+try:
+    client.admin.command('ping')
+    print("✅ Connected to MongoDB!")
+except Exception as e:
+    print(e)
+
+db = client["EyeDataPoints"]
+database = db["LiveData"]
+
 
 app = Flask(__name__)
+STREAM_URL = "http://172.20.10.5:5000/video_feed"
 
-# ── MongoDB ───────────────────────────────────────────────────────────────────
-MONGO_URI = os.environ.get("MONGO_URI", "mongodb://localhost:27017/")
-client = MongoClient(MONGO_URI)
-db = client["sensor_db"]
-events_col = db["motion_events"]
 
-# ── MediaPipe ─────────────────────────────────────────────────────────────────
-MODEL_PATH = os.path.abspath('face_landmarker.task')
-BaseOptions = mp.tasks.BaseOptions
-FaceLandmarker = mp.tasks.vision.FaceLandmarker
-FaceLandmarkerOptions = mp.tasks.vision.FaceLandmarkerOptions
-options = FaceLandmarkerOptions(
-    base_options=BaseOptions(model_asset_path=MODEL_PATH),
-    running_mode=mp.tasks.vision.RunningMode.VIDEO
-)
+# ── Routes ──
 
-current_label = "vacant"
-
+# Proxy the stream
 def generate_stream():
-    global current_label
-    cap = cv2.VideoCapture(0)
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-    last_db_write = time.time()
-
-    with FaceLandmarker.create_from_options(options) as detector:
-        while True:
-            ok, frame = cap.read()
-            if not ok:
-                time.sleep(0.05)
-                continue
-
-            frame = cv2.flip(frame, 1)
-            rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            mp_img = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
-            results = detector.detect_for_video(mp_img, int(time.time() * 1000))
-
-            is_focused = False
-            if results.face_landmarks:
-                lm = results.face_landmarks[0]
-                h, w, _ = frame.shape
-                left_iris = lm[468]
-                right_iris = lm[473]
-                is_focused = 0.35 < left_iris.x < 0.65
-
-                # Draw bounding box
-                xs = [p.x * w for p in lm]
-                ys = [p.y * h for p in lm]
-                color = (0, 229, 160) if is_focused else (255, 77, 109)
-                cv2.rectangle(frame,
-                    (int(min(xs)) - 15, int(min(ys)) - 15),
-                    (int(max(xs)) + 15, int(max(ys)) + 15), color, 2)
-
-                # Draw iris dots
-                cv2.circle(frame, (int(left_iris.x * w), int(left_iris.y * h)), 5, color, -1)
-                cv2.circle(frame, (int(right_iris.x * w), int(right_iris.y * h)), 5, color, -1)
-
-            # Status bar overlay
-            label_text = "FOCUSED" if is_focused else "DISTRACTED"
-            bar_color = (0, 229, 160) if is_focused else (255, 77, 109)
-            cv2.rectangle(frame, (0, 0), (frame.shape[1], 48), (11, 14, 20), -1)
-            cv2.putText(frame, label_text, (16, 33),
-                cv2.FONT_HERSHEY_SIMPLEX, 1.0, bar_color, 2, cv2.LINE_AA)
-
-            # Timestamp
-            ts = datetime.utcnow().strftime("%H:%M:%S UTC")
-            cv2.putText(frame, ts, (frame.shape[1] - 170, frame.shape[0] - 12),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.45, (90, 98, 120), 1, cv2.LINE_AA)
-
-            current_label = "human" if is_focused else "distracted"
-
-            # Write to MongoDB every 5 seconds
-            if time.time() - last_db_write >= 5:
-                events_col.insert_one({
-                    "timestamp": datetime.utcnow(),
-                    "duration_sec": 5,
-                    "label": current_label
-                })
-                last_db_write = time.time()
-
-            _, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 75])
-            yield (b'--frame\r\n'
-                   b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
-    cap.release()
-
+    try:
+        with requests.get(STREAM_URL, stream=True) as r:
+            for chunk in r.iter_content(chunk_size=1024):
+                if chunk:
+                    yield chunk
+    except requests.exceptions.RequestException:
+        return
 
 @app.route('/video_feed')
 def video_feed():
     return Response(generate_stream(),
-        mimetype='multipart/x-mixed-replace; boundary=frame')
+                    content_type='multipart/x-mixed-replace; boundary=frame')
 
-@app.route("/api/status")
-def status():
-    last = events_col.find_one(sort=[("timestamp", -1)])
-    return jsonify({
-        "occupied": current_label in ("human", "distracted"),
-        "label": current_label,
-        "last_event": last["timestamp"].strftime("%H:%M:%S") if last else "—"
-    })
 
 @app.route("/api/log")
 def log():
-    docs = list(events_col.find(sort=[("timestamp", -1)], limit=10))
+    docs = list(database.find().sort("timestamp", -1))
+
     return jsonify([{
-        "time": d["timestamp"].strftime("%Y-%m-%d %H:%M:%S"),
-        "duration": d.get("duration_sec", 5),
-        "label": d.get("label", "unknown")
+        "timestamp": d["timestamp"],
+        "left_eye": d.get("left_eye"),
+        "right_eye": d.get("right_eye"),
+        "camera_error": d.get("camera_error", False),
+        "focused": d.get("focused", False)
     } for d in docs])
 
-@app.route("/api/hourly")
-def hourly():
-    since = datetime.utcnow() - timedelta(seconds=60)
-    docs = list(events_col.find({"timestamp": {"$gte": since}}).sort("timestamp", 1))
-    return jsonify({
-        "labels": [d["timestamp"].strftime("%H:%M:%S") for d in docs],
-        "counts": [1 if d.get("label") == "human" else 0 for d in docs]
-    })
 
-@app.route("/api/total")
-def total():
-    since = datetime.utcnow() - timedelta(hours=24)
-    count = events_col.count_documents({"timestamp": {"$gte": since}})
-    return jsonify({"total_24h": count})
+@app.route("/api/status")
+def status():
+    latest = database.find_one(sort=[("timestamp", -1)])
+    if not latest:
+        return jsonify({"label": "unknown"})
 
-@app.route("/")
+    if latest.get("camera_error"):
+        return jsonify({"label": "camera_error", "seconds_since": 0})
+
+    now = datetime.now(timezone.utc).timestamp()
+    last_ts = latest["timestamp"]
+    if hasattr(last_ts, "timestamp"):
+        last_ts = last_ts.timestamp()
+    else:
+        last_ts = datetime.fromisoformat(last_ts).timestamp()
+
+    seconds_since = now - last_ts
+    label = "focused" if seconds_since < 5 else "distracted"
+    return jsonify({"label": label, "seconds_since": round(seconds_since, 2)})
+
+## Connect server to backend!
+@app.route('/')
 def index():
     return render_template("dashboard.html")
 
+
 if __name__ == "__main__":
-    print("✅ Starting Desk Security Monitor")
-    print("✅ Dashboard → http://127.0.0.1:5050")
-    print("✅ Camera feed → http://127.0.0.1:5050/video_feed")
-    app.run(debug=False, port=5050, use_reloader=False, threaded=True)
+    app.run(debug=False, port=5000, use_reloader=False)
 ```
 
 ### 6.2 `requirements.txt`
 
 ```
-flask==3.1.3
-pymongo==4.16.0
-opencv-python==4.13.0.92
-mediapipe
-numpy
+blinker==1.9.0
+certifi==2026.4.22
+charset-normalizer==3.4.7
+click==8.3.3
+colorama==0.4.6
+dnspython==2.8.0
+dotenv==0.9.9
+Flask==3.1.3
+gunicorn==25.3.0
+idna==3.13
+itsdangerous==2.2.0
+Jinja2==3.1.6
+MarkupSafe==3.0.3
+packaging==26.2
+pymongo==4.17.0
+python-dotenv==1.2.2
+requests==2.33.1
+urllib3==2.6.3
+Werkzeug==3.1.8
 ```
 
 ### 6.3 `docker-compose.yml` (MongoDB)
@@ -463,7 +428,7 @@ API_TOKEN
 - `face_landmarker.task` — download from [MediaPipe Model Cards](https://developers.google.com/mediapipe/solutions/vision/face_landmarker)
 - USB webcam connected + camera permissions granted to Terminal/VS Code
 
-### 9.2 Setup — Mac / Linux
+### 9.2 Setup — Windows / Mac / Linux
 
 **Step 1 — Start MongoDB:**
 ```bash
@@ -486,8 +451,7 @@ pip install flask pymongo opencv-python mediapipe numpy
 
 **Step 3 — Place model file:**
 ```bash
-# Download face_landmarker.task and put it here:
-ECE-3824-Final-Project/dashboard/face_landmarker.task
+ECE-3824-Final-Project/dashboard/app.py
 ```
 
 **Step 4 — Run:**
@@ -606,4 +570,3 @@ pytest tests/test_db.py -v
 ECE-3824 - Spring 2026
 
 ---
-
