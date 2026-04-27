@@ -6,7 +6,14 @@ app = Flask(__name__)
 
 # Initialize camera
 picam2 = Picamera2()
-picam2.configure(picam2.create_video_configuration(main={"size": (320, 240)}))
+
+# 🔁 FIXED: Force BGR format + increase resolution
+picam2.configure(
+    picam2.create_video_configuration(
+        main={"size": (640, 480), "format": "BGR888"}
+    )
+)
+
 picam2.start()
 
 # Load cascades
@@ -26,10 +33,19 @@ def generate_frames():
         frame = picam2.capture_array()
         frame_counter += 1
 
-        if frame_counter % FRAME_SKIP == 0:
-            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            last_faces = face_cascade.detectMultiScale(gray, 1.1, 5)
+        # 🔁 FIXED: ALWAYS define grayscale (critical)
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        gray = cv2.equalizeHist(gray)           # boosts contrast
+        gray = cv2.GaussianBlur(gray, (5, 5), 0)  # reduces noise
 
+        # 🔁 FIXED: More forgiving detection params
+        if frame_counter % FRAME_SKIP == 0:
+            last_faces = face_cascade.detectMultiScale(
+                gray,
+                scaleFactor=1.15,
+                minNeighbors=4,
+                minSize=(40, 40)
+            )
         for (x, y, w, h) in last_faces:
             # Draw face box
             cv2.rectangle(frame, (x, y), (x+w, y+h), (255, 0, 0), 2)
@@ -38,7 +54,9 @@ def generate_frames():
             roi_color = frame[y:y+h, x:x+w]
 
             # --- EYES ---
-            eyes = eye_cascade.detectMultiScale(roi_gray, 1.1, 10)
+            # 🔁 FIXED: Slightly relaxed params
+            eyes = eye_cascade.detectMultiScale(roi_gray, 1.1, 2)
+
             for (ex, ey, ew, eh) in eyes:
                 cv2.rectangle(roi_color, (ex, ey), (ex+ew, ey+eh), (0, 255, 0), 2)
 
@@ -62,7 +80,6 @@ def generate_frames():
             )
 
             for (sx, sy, sw, sh) in smiles:
-                # Only consider lower half of face (reduces false positives)
                 if sy > h // 2:
                     cv2.rectangle(roi_color, (sx, sy), (sx+sw, sy+sh), (0, 0, 255), 2)
 
@@ -77,15 +94,12 @@ def generate_frames():
                         1
                     )
 
-        # Convert from BGR to RGB
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                    
         # Encode frame
+
+        frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
         ret, buffer = cv2.imencode('.jpg', frame)
         frame_bytes = buffer.tobytes()
 
-        
-        
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
 
@@ -101,6 +115,7 @@ def index():
         </body>
     </html>
     '''
+
 
 @app.route('/video')
 def video():
