@@ -1,16 +1,21 @@
 from pymongo import MongoClient
+from pymongo.server_api import ServerApi
+from dotenv import load_dotenv
+import os
 
-client = MongoClient("mongodb+srv://smlgeorgi:Michael12!@eyetrackingdata.owsc6t5.mongodb.net/")
-
-db = client["activity_feed_db"]
-collection = db["sample_events"]
-
-
-print("Number of documents: ", collection.count_documents({}))
+### ── MongoDB Setup ─────────────────────────────────────
+load_dotenv("../../.env/.env")
+uri = os.getenv("MONGO_URI")
+print("Connecting to MongoDB...")
+client = MongoClient(uri, server_api=ServerApi('1'))
 
 
 
-
+try:
+    client.admin.command('ping')
+    print("✅ Connected to MongoDB!")
+except Exception as e:
+    print(e)
 
 
 

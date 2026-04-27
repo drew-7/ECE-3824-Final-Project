@@ -47,8 +47,8 @@ face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_fronta
 eye_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_eye.xml')
 
 ### ── Settings ──────────────────────────────────────────
-FRAME_SKIP = 5
-PRINT_EVERY = 1
+FRAME_SKIP = 10
+PRINT_EVERY = 4
 
 frame_counter = 0
 last_faces = []
@@ -93,7 +93,7 @@ def generate_frames():
             roi_gray = gray[y:y+h, x:x+w]
             roi_color = frame[y:y+h, x:x+w]
 
-            eyes = eye_cascade.detectMultiScale(roi_gray, 1.05, 2, minSize=(20, 20))
+            eyes = eye_cascade.detectMultiScale(roi_gray, 1.1, 3, minSize=(20, 20))
 
             for (ex, ey, ew, eh) in eyes:
                 cv2.rectangle(roi_color, (ex, ey), (ex+ew, ey+eh), (0, 255, 0), -1)
