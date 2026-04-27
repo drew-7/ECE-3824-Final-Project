@@ -26,7 +26,7 @@ database = db["LiveData"]
 
 app = Flask(__name__)
 STREAM_URL = "http://172.20.10.5:5000/video_feed"
-#STREAM_URL = "http://127.0.0.1:5000/video_feed"
+
 
 # ── Routes ──
 
