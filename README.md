@@ -205,8 +205,8 @@ ECE-3824-Final-Project/
 │       ├── face_scan.py            ← Face scan MJPEG stream (Pi)
 │       └── mediapipe_test.py       ← MediaPipe face mesh stream (Pi)
 ├── Server_Code/
-│   └── main.py                   ← FastAPI alternative backend
-│   └── upload.py                 ← FastAPI alternative backend to upload then data
+│   └── main.py                   ← Flask alternative backend
+│   └── upload.py                 ← Flask alternative backend to upload then data
 └── README.md                     ← This file
 ```
 
@@ -555,9 +555,9 @@ pytest tests/test_db.py -v
 
 | Week | Milestone |
 |---|---|
-| **Week 9** | Project proposal submitted. Chose Raspberry Pi + USB webcam. Defined data pipeline: OpenCV → FastAPI → MongoDB → Flask dashboard |
+| **Week 9** | Project proposal submitted. Chose Raspberry Pi + USB webcam. Defined data pipeline: OpenCV → Flask → MongoDB → Flask dashboard |
 | **Week 10** | Hardware acquired. Pi connected to `tuiot` WiFi. Basic USB webcam stream confirmed via `view_camera.py`. Docker MongoDB tested locally |
-| **Week 11** | Full sensor-to-database pipeline working. FastAPI backend with Bearer Token implemented. MongoDB integrated via Docker. End-to-end validation confirmed |
+| **Week 11** | Full sensor-to-database pipeline working. Flask backend with Bearer Token implemented. MongoDB integrated via Docker. End-to-end validation confirmed |
 | **Week 12** | Web dashboard built with Chart.js timeline, occupancy status, focus rate bar, and session log. MJPEG live feed embedded via `<iframe>` |
 | **Week 13** | MediaPipe iris tracking integrated into `app.py`. Focused/distracted classification working. Dashboard updated with green/red status. README and slides finalized |
 | **Week 14** | Final presentation. Demonstrated live dashboard, architecture, API calls, security model, testing suite, and documentation |
