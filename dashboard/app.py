@@ -7,8 +7,6 @@ from datetime import datetime, timezone
 import os
 import requests
 
-
-
 ## MongoDB overhead
 load_dotenv("../.env/.env")
 uri = os.getenv("MONGO_URI")
@@ -27,7 +25,8 @@ database = db["LiveData"]
 
 
 app = Flask(__name__)
-STREAM_URL = "http://127.0.0.1:5000/video_feed"
+STREAM_URL = "http://172.20.10.5:5000/video_feed"
+#STREAM_URL = "http://127.0.0.1:5000/video_feed"
 
 # ── Routes ──
 
@@ -74,7 +73,7 @@ def status():
         last_ts = datetime.fromisoformat(last_ts).timestamp()
 
     seconds_since = now - last_ts
-    label = "focused" if seconds_since < 3 else "distracted"
+    label = "focused" if seconds_since < 5 else "distracted"
     return jsonify({"label": label, "seconds_since": round(seconds_since, 2)})
 
 ## Connect server to backend!

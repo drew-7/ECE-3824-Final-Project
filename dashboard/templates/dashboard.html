@@ -824,95 +824,12 @@ async function updateEyeData() {
   renderPage();
 }
 
-
-// // ── FOCUS TIMELINE ──
-// const MAX_TIMELINE = 60; // keep last 60 status readings
-// const focusHistory = [];
-
-// const focusChart = new Chart(document.getElementById("focusChart"), {
-//   type: "line",
-//   data: {
-//     labels: [],
-//     datasets: [{
-//       label: "State",
-//       data: [],
-//       borderColor: "#00e5a0",
-//       backgroundColor: "rgba(0,229,160,0.08)",
-//       borderWidth: 2,
-//       pointRadius: 3,
-//       pointBackgroundColor: [],
-//       stepped: true,
-//       fill: true,
-//       tension: 0
-//     }]
-//   },
-//   options: {
-//     animation: false,
-//     responsive: true,
-//     maintainAspectRatio: false,
-//     plugins: {
-//       legend: { display: false },
-//       tooltip: {
-//         backgroundColor: "#0e1219",
-//         borderColor: "#1c2230",
-//         borderWidth: 1,
-//         titleFont: { family: "'Space Mono', monospace", size: 10 },
-//         bodyFont:  { family: "'Space Mono', monospace", size: 10 },
-//         callbacks: {
-//           label: ctx => ctx.parsed.y === 1 ? " FOCUSED" : " DISTRACTED"
-//         }
-//       }
-//     },
-//     scales: {
-//       x: {
-//         grid: { color: "#1c2230" },
-//         ticks: {
-//           color: "#3d4760",
-//           font: { family: "'Space Mono', monospace", size: 9 },
-//           maxTicksLimit: 8,
-//           maxRotation: 0
-//         }
-//       },
-//       y: {
-//         min: -0.2,
-//         max: 1.2,
-//         grid: { color: "#1c2230" },
-//         ticks: {
-//           color: "#3d4760",
-//           font: { family: "'Space Mono', monospace", size: 9 },
-//           stepSize: 1,
-//           callback: val => val === 1 ? "Focused" : val === 0 ? "Distracted" : ""
-//         }
-//       }
-//     }
-//   }
-// });
-
-// function updateFocusTimeline(label) {
-//   const now = new Date().toLocaleTimeString('en-GB', { hour12: false });
-//   const value = label === "focused" ? 1 : 0;
-//   const pointColor = label === "focused" ? "#00e5a0" : "#ff4d6d";
-
-//   focusHistory.push({ time: now, value, color: pointColor });
-//   if (focusHistory.length > MAX_TIMELINE) focusHistory.shift();
-
-//   focusChart.data.labels = focusHistory.map(p => p.time);
-//   focusChart.data.datasets[0].data = focusHistory.map(p => p.value);
-//   focusChart.data.datasets[0].pointBackgroundColor = focusHistory.map(p => p.color);
-//   focusChart.data.datasets[0].borderColor = pointColor;
-
-//   focusChart.update();
-
-//   if (focusHistory.length > 1) {
-//     document.getElementById("timelineRange").textContent =
-//       `${focusHistory[0].time} – ${focusHistory[focusHistory.length - 1].time}`;
-//   }
-// }
-
 // ── FOCUS TIMELINE ──
 const TIMELINE_PAGE_SIZE = 60;
 let timelinePageOffset = 0;
 let allFocusHistory = [];
+let lastFocusedTime = 0;
+const FOCUS_COOLDOWN_MS = 5000;
 
 const focusChart = new Chart(document.getElementById("focusChart"), {
   type: "line",
@@ -1013,17 +930,27 @@ function changeTimelinePage(dir) {
 }
 
 function updateFocusTimeline(label) {
-  const now = new Date().toLocaleTimeString('en-GB', { hour12: false });
-  const value = label === "focused" ? 1 : 0;
-  const color = label === "focused" ? "#00e5a0" : "#ff4d6d";
+  const now = new Date();
+  const nowMs = now.getTime();
 
-  allFocusHistory.push({ time: now, value, color });
+  if (label === "focused") {
+    lastFocusedTime = nowMs;
+  }
+
+  const effectiveLabel = (nowMs - lastFocusedTime) < FOCUS_COOLDOWN_MS
+    ? "focused"
+    : "distracted";
+
+  const timeStr = now.toLocaleTimeString('en-GB', { hour12: false });
+  const value = effectiveLabel === "focused" ? 1 : 0;
+  const color = effectiveLabel === "focused" ? "#00e5a0" : "#ff4d6d";
+
+  allFocusHistory.push({ time: timeStr, value, color });
 
   if (timelinePageOffset === 0) {
     renderTimelinePage();
   }
 }
-
 
 // ── LOOP ──
 async function refresh() {
