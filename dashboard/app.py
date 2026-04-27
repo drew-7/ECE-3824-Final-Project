@@ -13,6 +13,7 @@ MONGO_URI = os.environ.get("MONGO_URI", "mongodb://localhost:27017/")
 client = MongoClient(MONGO_URI)
 db = client["sensor_db"]
 events_col = db["motion_events"]
+events_col.delete_many({}) # Clears old events on startup
 
 # ── MediaPipe Setup ───────────────────────────────────────────────────────────
 MODEL_PATH = os.path.abspath('face_landmarker.task')
