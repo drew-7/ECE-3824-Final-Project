@@ -32,7 +32,7 @@ options = FaceLandmarkerOptions(
 # ── Global state ──────────────────────────────────────────────────────────────
 current_label = "vacant"
 last_event_ts = "—"
-SMOOTH_N      = 6        # frames to average for smoothing
+SMOOTH_N      = 5        # frames to average for smoothing
 gaze_history  = []
 
 
@@ -136,7 +136,7 @@ def generate_stream():
                     gaze_history.pop(0)
                 smoothed = sum(gaze_history) / len(gaze_history)
 
-                raw_focused = smoothed > 0.55
+                raw_focused = smoothed > 0.50
 
                 # Sustain filter — don't switch instantly on a glance away
                 if raw_focused:
@@ -256,4 +256,3 @@ if __name__ == "__main__":
     print("✅ Network access → http://0.0.0.0:5050")
     print("✅ Camera feed    → http://127.0.0.1:5050/video_feed")
     app.run(host="0.0.0.0", debug=False, port=5050, use_reloader=False, threaded=True)
-    
