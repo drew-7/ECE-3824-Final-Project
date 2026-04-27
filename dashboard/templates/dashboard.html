@@ -294,7 +294,6 @@ main {
 .stat-val.green { color: var(--green); }
 .stat-val.red { color: var(--red); }
 
-
 .card-camera {
   grid-column: 1;
   grid-row: 2;
@@ -467,6 +466,7 @@ main {
   text-transform: uppercase;
 }
 
+
 .axis-hint.right { text-align: right; }
 </style>
 </head>
@@ -527,7 +527,27 @@ main {
           <span class="stat-key">Eyes Detected</span>
           <span class="stat-val" id="eyesDetected">—</span>
         </div>
+        <div class="stat-item">
+          <span class="stat-key">Distracted</span>
+          <span class="stat-val" id="distracted">—</span>
+        </div>
       </div>
+    </div>
+  </div>
+
+   <!-- Line Graph -->  
+  <div class="card" style="grid-column: 2; margin-top: 0;">
+    <div class="card-header">
+      <span class="card-label">Focus Timeline</span>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <button class="nav-btn" id="timelineBtnBack" onclick="changeTimelinePage(1)" title="Older">&#8592;</button>
+        <span class="page-label" id="timelinePageLabel">latest</span>
+        <button class="nav-btn" id="timelineBtnFwd" onclick="changeTimelinePage(-1)" title="Newer">&#8594;</button>
+        <span class="card-label" id="timelineRange">—</span>
+      </div>
+    </div>
+    <div style="padding: 1rem; position: relative; height: 200px;">
+      <canvas id="focusChart" role="img" aria-label="Binary line chart showing focused or distracted state over time">No data yet.</canvas>
     </div>
   </div>
 
@@ -559,6 +579,7 @@ main {
       </div>
     </div>
 
+ 
     <div class="scatter-body">
       <div class="axis-hints">
         <span class="axis-hint">&#8592; Left</span>
@@ -615,22 +636,60 @@ async function fetchJSON(url) {
   } catch(e) { return null; }
 }
 
-// ── STATUS ──
+
 async function updateStatus() {
   const d = await fetchJSON("/api/status");
   if (!d) return;
 
-  const label = d.label.toLowerCase();
+  const validLabels = ["focused", "distracted", "camera_error"];  
+  const label = validLabels.includes(d.label.toLowerCase())
+    ? d.label.toLowerCase()
+    : "distracted";
+
   const textEl = document.getElementById("statusText");
   const dotEl  = document.getElementById("statusDot");
+  const eyesEl = document.getElementById("eyesDetected");
+  const distractedEl = document.getElementById("distracted");
 
+  // ← new block
+  if (label === "camera_error") {
+    textEl.textContent = "NO CAMERA";
+    textEl.className = "status-value";
+    dotEl.className  = "status-dot";
+    eyesEl.textContent = "—";
+    distractedEl.textContent = "—";
+    return;
+  }
+
+  // Status dot + label
   textEl.textContent = label.toUpperCase();
   textEl.className = "status-value " + label;
   dotEl.className  = "status-dot " + label;
+  updateFocusTimeline(label);
 
+  // Last update time
   document.getElementById("lastUpdate").textContent =
     new Date().toLocaleTimeString('en-GB', { hour12: false });
+
+  // Eyes detected
+  if (d.seconds_since < 3) {
+    eyesEl.textContent = "Both";
+    eyesEl.className = "stat-val green";
+  } else {
+    eyesEl.textContent = "None";
+    eyesEl.className = "stat-val red";
+  }
+
+  // Distracted timer
+  if (d.seconds_since < 3) {
+    distractedEl.textContent = "—";
+    distractedEl.className = "stat-val";
+  } else {
+    distractedEl.textContent = `${Math.round(d.seconds_since)}s`;
+    distractedEl.className = "stat-val red";
+  }
 }
+
 
 // ── SCATTER CHART ──
 const PAGE_SIZE = 200;
@@ -764,6 +823,207 @@ async function updateEyeData() {
   allData = d;
   renderPage();
 }
+
+
+// // ── FOCUS TIMELINE ──
+// const MAX_TIMELINE = 60; // keep last 60 status readings
+// const focusHistory = [];
+
+// const focusChart = new Chart(document.getElementById("focusChart"), {
+//   type: "line",
+//   data: {
+//     labels: [],
+//     datasets: [{
+//       label: "State",
+//       data: [],
+//       borderColor: "#00e5a0",
+//       backgroundColor: "rgba(0,229,160,0.08)",
+//       borderWidth: 2,
+//       pointRadius: 3,
+//       pointBackgroundColor: [],
+//       stepped: true,
+//       fill: true,
+//       tension: 0
+//     }]
+//   },
+//   options: {
+//     animation: false,
+//     responsive: true,
+//     maintainAspectRatio: false,
+//     plugins: {
+//       legend: { display: false },
+//       tooltip: {
+//         backgroundColor: "#0e1219",
+//         borderColor: "#1c2230",
+//         borderWidth: 1,
+//         titleFont: { family: "'Space Mono', monospace", size: 10 },
+//         bodyFont:  { family: "'Space Mono', monospace", size: 10 },
+//         callbacks: {
+//           label: ctx => ctx.parsed.y === 1 ? " FOCUSED" : " DISTRACTED"
+//         }
+//       }
+//     },
+//     scales: {
+//       x: {
+//         grid: { color: "#1c2230" },
+//         ticks: {
+//           color: "#3d4760",
+//           font: { family: "'Space Mono', monospace", size: 9 },
+//           maxTicksLimit: 8,
+//           maxRotation: 0
+//         }
+//       },
+//       y: {
+//         min: -0.2,
+//         max: 1.2,
+//         grid: { color: "#1c2230" },
+//         ticks: {
+//           color: "#3d4760",
+//           font: { family: "'Space Mono', monospace", size: 9 },
+//           stepSize: 1,
+//           callback: val => val === 1 ? "Focused" : val === 0 ? "Distracted" : ""
+//         }
+//       }
+//     }
+//   }
+// });
+
+// function updateFocusTimeline(label) {
+//   const now = new Date().toLocaleTimeString('en-GB', { hour12: false });
+//   const value = label === "focused" ? 1 : 0;
+//   const pointColor = label === "focused" ? "#00e5a0" : "#ff4d6d";
+
+//   focusHistory.push({ time: now, value, color: pointColor });
+//   if (focusHistory.length > MAX_TIMELINE) focusHistory.shift();
+
+//   focusChart.data.labels = focusHistory.map(p => p.time);
+//   focusChart.data.datasets[0].data = focusHistory.map(p => p.value);
+//   focusChart.data.datasets[0].pointBackgroundColor = focusHistory.map(p => p.color);
+//   focusChart.data.datasets[0].borderColor = pointColor;
+
+//   focusChart.update();
+
+//   if (focusHistory.length > 1) {
+//     document.getElementById("timelineRange").textContent =
+//       `${focusHistory[0].time} – ${focusHistory[focusHistory.length - 1].time}`;
+//   }
+// }
+
+// ── FOCUS TIMELINE ──
+const TIMELINE_PAGE_SIZE = 60;
+let timelinePageOffset = 0;
+let allFocusHistory = [];
+
+const focusChart = new Chart(document.getElementById("focusChart"), {
+  type: "line",
+  data: {
+    labels: [],
+    datasets: [{
+      label: "State",
+      data: [],
+      borderColor: "#00e5a0",
+      backgroundColor: "rgba(0,229,160,0.08)",
+      borderWidth: 2,
+      pointRadius: 3,
+      pointBackgroundColor: [],
+      stepped: true,
+      fill: true,
+      tension: 0
+    }]
+  },
+  options: {
+    animation: false,
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: "#0e1219",
+        borderColor: "#1c2230",
+        borderWidth: 1,
+        titleFont: { family: "'Space Mono', monospace", size: 10 },
+        bodyFont:  { family: "'Space Mono', monospace", size: 10 },
+        callbacks: {
+          label: ctx => ctx.parsed.y === 1 ? " FOCUSED" : " DISTRACTED"
+        }
+      }
+    },
+    scales: {
+      x: {
+        grid: { color: "#1c2230" },
+        ticks: {
+          color: "#3d4760",
+          font: { family: "'Space Mono', monospace", size: 9 },
+          maxTicksLimit: 8,
+          maxRotation: 0
+        }
+      },
+      y: {
+        min: -0.2,
+        max: 1.2,
+        grid: { color: "#1c2230" },
+        ticks: {
+          color: "#3d4760",
+          font: { family: "'Space Mono', monospace", size: 9 },
+          stepSize: 1,
+          callback: val => val === 1 ? "Focused" : val === 0 ? "Distracted" : ""
+        }
+      }
+    }
+  }
+});
+
+function renderTimelinePage() {
+  const total = allFocusHistory.length;
+  const maxOffset = Math.max(0, Math.ceil(total / TIMELINE_PAGE_SIZE) - 1);
+  timelinePageOffset = Math.min(timelinePageOffset, maxOffset);
+
+  const end = total - (timelinePageOffset * TIMELINE_PAGE_SIZE);
+  const start = Math.max(0, end - TIMELINE_PAGE_SIZE);
+  const slice = allFocusHistory.slice(start, end);
+
+  focusChart.data.labels = slice.map(p => p.time);
+  focusChart.data.datasets[0].data = slice.map(p => p.value);
+  focusChart.data.datasets[0].pointBackgroundColor = slice.map(p => p.color);
+  focusChart.data.datasets[0].borderColor =
+    slice.length > 0 ? slice[slice.length - 1].color : "#00e5a0";
+
+  focusChart.update();
+
+  const labelEl = document.getElementById("timelinePageLabel");
+  labelEl.textContent = timelinePageOffset === 0 ? "latest" : `${start + 1}–${end}`;
+
+  if (slice.length > 1) {
+    document.getElementById("timelineRange").textContent =
+      `${slice[0].time} – ${slice[slice.length - 1].time}`;
+  }
+
+  const backBtn = document.getElementById("timelineBtnBack");
+  const fwdBtn  = document.getElementById("timelineBtnFwd");
+  backBtn.disabled = end >= total;
+  fwdBtn.disabled  = timelinePageOffset === 0;
+  backBtn.style.opacity = backBtn.disabled ? "0.25" : "1";
+  fwdBtn.style.opacity  = fwdBtn.disabled  ? "0.25" : "1";
+}
+
+function changeTimelinePage(dir) {
+  const maxOffset = Math.max(0, Math.ceil(allFocusHistory.length / TIMELINE_PAGE_SIZE) - 1);
+  timelinePageOffset = Math.max(0, Math.min(maxOffset, timelinePageOffset + dir));
+  renderTimelinePage();
+}
+
+function updateFocusTimeline(label) {
+  const now = new Date().toLocaleTimeString('en-GB', { hour12: false });
+  const value = label === "focused" ? 1 : 0;
+  const color = label === "focused" ? "#00e5a0" : "#ff4d6d";
+
+  allFocusHistory.push({ time: now, value, color });
+
+  if (timelinePageOffset === 0) {
+    renderTimelinePage();
+  }
+}
+
 
 // ── LOOP ──
 async function refresh() {
