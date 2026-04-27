@@ -189,10 +189,10 @@ def generate_stream():
             current_label = "human" if is_focused else "distracted"
 
             # Write to MongoDB every 5 seconds
-            if time.time() - last_db_write >= 5:
+            if time.time() - last_db_write >= 1:
                 events_col.insert_one({
                     "timestamp":    now_utc(),
-                    "duration_sec": 5,
+                    "duration_sec": 1,
                     "label":        current_label
                 })
                 last_event_ts = now_utc().strftime("%H:%M:%S")
@@ -232,7 +232,7 @@ def log():
 
 @app.route("/api/hourly")
 def hourly():
-    since = now_utc() - timedelta(seconds=60)
+    since = now_utc() - timedelta(seconds=30)
     docs  = list(events_col.find({"timestamp": {"$gte": since}}).sort("timestamp", 1))
     return jsonify({
         "labels": [d["timestamp"].strftime("%H:%M:%S") for d in docs],
