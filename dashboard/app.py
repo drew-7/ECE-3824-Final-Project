@@ -29,7 +29,6 @@ STREAM_URL = "http://172.20.10.5:5000/video_feed"
 
 
 # ── Routes ──
-
 # Proxy the stream
 def generate_stream():
     try:
@@ -40,6 +39,23 @@ def generate_stream():
     except requests.exceptions.RequestException:
         return
 
+
+def trim_database():
+    stats = db.command("collStats", "LiveData")
+    size_mb = stats["size"] / (1024 * 1024)
+    
+    if size_mb >= 480:
+        # find the 20 oldest documents and delete them
+        oldest = list(database.find().sort("timestamp", 1).limit(20))
+        if oldest:
+            oldest_ids = [doc["_id"] for doc in oldest]
+            database.delete_many({"_id": {"$in": oldest_ids}})
+            print(f"⚠️ Database at {size_mb:.1f}MB — deleted 20 oldest documents")
+
+
+
+
+
 @app.route('/video_feed')
 def video_feed():
     return Response(generate_stream(),
@@ -48,6 +64,10 @@ def video_feed():
 
 @app.route("/api/log")
 def log():
+
+
+    trim_database()  
+
     docs = list(database.find().sort("timestamp", -1))
 
     return jsonify([{
