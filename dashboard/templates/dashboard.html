@@ -114,6 +114,14 @@ header {
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
+  /* ── Refresh indicator ──────────────────────────── */
+  .refresh-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 3px; background: var(--border); }
+  .refresh-progress {
+    height: 100%; background: var(--green); width: 100%;
+    transform-origin: left;
+    animation: shrink 1s linear infinite;
+  }
+  @keyframes shrink { from{transform:scaleX(1)} to{transform:scaleX(0)} }
 
 .header-meta {
   display: flex;
