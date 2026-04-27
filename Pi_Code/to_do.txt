@@ -1,7 +1,0 @@
-
-Steps needed on the PI:
-
-1. Install Pymongo
-2. Connect to Mongo client
-3. Insert Data
-
