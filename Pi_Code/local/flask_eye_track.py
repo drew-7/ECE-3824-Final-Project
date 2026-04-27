@@ -11,6 +11,9 @@ load_dotenv("../../.env/.env")
 uri = os.getenv("MONGO_URI")
 print("Connecting to MongoDB...")
 client = MongoClient(uri, server_api=ServerApi('1'))
+
+
+
 try:
     client.admin.command('ping')
     print("✅ Connected to MongoDB!")
@@ -25,7 +28,6 @@ app = Flask(__name__)
 
 
 ### ── Camera Setup ──────────────────────────────────────
-os.environ["OPENCV_VIDEOIO_MSMF_ENABLE_HW_TRANSFORMS"] = "0"
 cap = cv2.VideoCapture(0)
 FRAME_WIDTH = 320
 FRAME_HEIGHT = 240
@@ -59,7 +61,8 @@ def generate_frames():
                 "timestamp": datetime.now(timezone.utc).isoformat(),
                 "left_eye": None,
                 "right_eye": None,
-                "camera_error": True
+                "camera_error": True,
+                "focused": False
             })
             continue
 
@@ -109,7 +112,8 @@ def generate_frames():
                 "timestamp": datetime.now(timezone.utc).isoformat(),
                 "left_eye": {"x": left_eye[0], "y": left_eye[1]},
                 "right_eye": {"x": right_eye[0], "y": right_eye[1]},
-                "camera_error": False
+                "camera_error": False,
+                "focused": True   
 
             }
 
