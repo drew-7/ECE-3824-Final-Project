@@ -32,10 +32,13 @@ STREAM_URL = "http://172.20.10.5:5000/video_feed"
 
 # Proxy the stream
 def generate_stream():
-    with requests.get(STREAM_URL, stream=True) as r:
-        for chunk in r.iter_content(chunk_size=1024):
-            if chunk:
-                yield chunk
+    try:
+        with requests.get(STREAM_URL, stream=True) as r:
+            for chunk in r.iter_content(chunk_size=1024):
+                if chunk:
+                    yield chunk
+    except requests.exceptions.RequestException:
+        return
 
 @app.route('/video_feed')
 def video_feed():
@@ -83,4 +86,4 @@ def index():
 
 
 if __name__ == "__main__":
-    app.run(debug=False, port=5050, use_reloader=False)
+    app.run(debug=False, port=5000, use_reloader=False)
