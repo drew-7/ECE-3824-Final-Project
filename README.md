@@ -358,7 +358,7 @@ The full HTML file lives in `dashboard/templates/dashboard.html`. Critical decis
 - Chart.js **stacked bar chart** with two datasets: green (focused=1) and red (distracted=0)
 - **`setInterval(refresh, 5000)`** calls `Promise.all()` on all 4 endpoints simultaneously
 - **Focus rate bar**: `(focused_count / total) * 100` — green >60%, amber >30%, red otherwise
-- Status dot CSS: `.focused` (green pulse), `.distracted` (red pulse), `.vacant` (grey)
+- Status dot CSS: `.focused` (green pulse), `.distracted` (red pulse).
 
 ---
 
