@@ -2,7 +2,7 @@
 
 > **ECE-3824 Final Project** | Dhruvil Patel & Samuel Georgi | Spring 2026
 
-A complete end-to-end IoT pipeline that uses computer vision to monitor whether a person at a desk is **focused or distracted**. A Raspberry Pi 3 runs MediaPipe iris tracking locally, transmits labeled events securely to a Flask backend, stores them in MongoDB, and displays everything on a live web dashboard.
+A complete end-to-end IoT pipeline that uses computer vision to monitor whether a person at a desk is **focused or distracted**. A Raspberry Pi 3 runs OpenCV tracking locally, transmits labeled events securely to a Flask backend, stores them in MongoDB, and displays everything on a live web dashboard.
 
 ![Python](https://img.shields.io/badge/Python-3.10+-blue?style=flat-square&logo=python)
 ![Flask](https://img.shields.io/badge/Flask-3.1.3-black?style=flat-square&logo=flask)
